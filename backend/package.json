@@ -8,9 +8,6 @@
     "build": "tsc",
     "start": "node dist/routes/server.js"
   },
-
-    
-  
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -20,6 +17,7 @@
     "dotenv-safe": "^9.1.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "nodemailer": "^7.0.10",
     "sqlite3": "^5.1.7",
     "zod": "^4.1.12"
   },
@@ -27,6 +25,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.1",
+    "@types/nodemailer": "^7.0.3",
     "@types/sqlite3": "^3.1.11",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",

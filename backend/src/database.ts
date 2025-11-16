@@ -107,6 +107,19 @@ db.serialize(() => {
       UNIQUE(turma_id, aluno_id)
     )
   `);
+
+  // Cria a tabela de tokens de recuperação de senha
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tokens_recuperacao (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      expira_em DATETIME NOT NULL,
+      usado INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+  `);
 });
 
 // Exporta a conexão do banco de dados para ser usada em outros arquivos
