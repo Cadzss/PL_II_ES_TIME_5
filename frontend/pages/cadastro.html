@@ -1,0 +1,206 @@
+<!--Autora: Laura Lugli-->
+<!--Define que a página usa HTML5 e está em português. -->
+<!DOCTYPE html>
+<html lang="pt">
+    <head>
+        <!-- Define o idioma principal da página. -->
+        <meta charset="utf-8"/>
+
+        <!-- Garante que a página seja responsiva. -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- Título da aba do navegador. -->
+        <title>Cadastro | NotaDez</title>
+
+        <!-- Importa o CSS base. -->
+        <link href="/styles/base.css" rel="stylesheet"/>
+
+        <!-- Importa o CSS específico dessa tela de cadastro. -->
+        <link href="/styles/cadastro.css" rel="stylesheet"/>
+
+        <!-- Importa o Bootstrap (para estilização). -->
+        <link 
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" 
+            rel="stylesheet" 
+            integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" 
+            crossorigin="anonymous"
+        />
+
+        <!-- Importa os ícones do Bootstrap (usados nos campos e alertas). -->
+        <link 
+            rel="stylesheet" 
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+        />
+    </head>
+
+    <!-- BODY -->
+    <body class="d-flex flex-column min-vh-100 bg-body-tertiary">
+
+        <!-- MAIN -->
+        <main class="flex-grow-1 d-flex justify-content-center align-items-start pt-5">
+        
+
+            <!-- Card do formulário de cadastro (principal). -->
+            <div class="shadow p-4 mb-5 bg-body rounded">
+                    
+                <!-- Container interno para o conteúdo do cadastro. Centraliza todo o texto dentro deste bloco. -->
+                <div id="cadastro" class="text-center">
+                
+                    <!-- 
+                        Título principal da página de cadastro.
+                        - Ícone "mortarboard-fill" (chapéu de formatura).
+                    -->
+                    <h1>
+                        <i class="bi bi-mortarboard-fill"></i> NotaDez
+                    </h1>
+
+                    <!-- Subtítulo e instruções. -->
+                    <h2 class="h5 mb-3">Crie sua conta</h2>
+
+                    <!-- Texto explicativo abaixo do subtítulo. -->
+                    <p class="subtitulo">Use um e-mail pessoal. Não há acesso como visitante.</p>
+
+                    <!-- 
+                        ÁREA DE ALERTAS 
+                        - "d-none": ocultos por padrão, só aparecem via JS.
+                    -->
+
+                    <!--  Alerta vermelho (danger) para erro ao cadastrar. -->
+                    <div class="alert alert-danger d-flex align-items-center d-none" role="alert">
+                        <div>
+                            <i class="bi bi-x-circle"></i><strong> Erro ao cadastrar!</strong> Verifique os dados e tente novamente.
+                        </div>
+                    </div>
+
+                    <!-- Alerta amarelo (warning) para e-mail já cadastrado. -->
+                    <div class="alert alert-warning d-flex align-items-center d-none" role="alert">
+                        <div>
+                            <i class="bi bi-exclamation-triangle"></i><strong> E-mail já cadastrado!</strong> Use outro e-mail ou faça login.
+                        </div>
+                    </div>
+
+                    <!-- Alerta amarelo (warning) para campos obrigatórios não preenchidos. -->
+                    <div class="alert alert-warning d-flex align-items-center d-none" role="alert">
+                        <div>
+                            <i class="bi bi-exclamation-triangle"></i><strong> Campos obrigatórios não preenchidos!</strong> Complete todos os campos antes de enviar.
+                        </div>
+                    </div>
+
+                    <!-- Alerta verde (success) para conta cadastrada com sucesso. -->
+                    <div id="sucessoCadastro" class="alert alert-success d-flex align-items-center d-none" role="alert">
+                        <div>
+                            <i class="bi bi-check-circle"></i><strong> Conta cadastrada com sucesso!</strong> Acesse a página de login e entre na sua conta.
+                        </div>
+                    </div>
+
+                    <!-- Formulário de cadastro. -->
+                    <form class="my-4" id="formCadastro">
+
+                        <!-- Bloco para o campo de nome completo.-->
+                        <div class="mb-3 text-start">
+
+                            <!-- Label associada ao campo de nome (via atributo "for"). -->
+                            <label for="inputNomeCadastro" class="form-label">Nome Completo</label>
+                            
+                            <!-- Agrupa ícone e campo de texto em uma única linha. -->
+                            <div class="input-group">
+
+                                <!-- Ícone de pessoa para indicar campo de nome. -->
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+
+                                <!-- Campo de entrada:
+                                    - type="text": para texto simples.
+                                -->
+                                <input id="inputNomeCadastro" class="form-control" type="text" placeholder="Digite seu nome e sobrenome" required>
+                            </div>
+                        </div>
+
+                        <!-- Bloco para o campo de e-mail.-->
+                        <div class="mb-3 text-start">
+
+                            <!-- Label associada ao campo de e-mail (via atributo "for"). -->
+                            <label for="inputEmailCadastro" class="form-label">E-mail</label>
+                            
+                            <!-- Agrupa ícone e campo de texto em uma única linha. -->
+                            <div class="input-group">
+
+                                <!-- Ícone de envelope para indicar campo de e-mail. -->
+                                <span class="input-group-text"><i class="bi bi-envelope-at"></i></span>
+
+                                <!-- Campo de entrada:
+                                    - type="email": valida formato de e-mail.
+                                -->
+                                <input id="inputEmailCadastro" class="form-control" type="email" placeholder="exemplo@email.com" required>
+                            </div>
+                        </div>
+
+                        <!-- Bloco para o campo de telefone celular.-->
+                        <div class="mb-3 text-start">
+
+                            <!-- Label associada ao campo de telefone (via atributo "for"). -->
+                            <label for="inputTelCadastro" class="form-label">Telefone Celular</label>
+                            
+                            <!-- Agrupa ícone e campo de texto em uma única linha. -->
+                            <div class="input-group">
+
+                                <!-- Ícone de telefone para indicar campo de telefone. -->
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+
+                                <!-- Campo de entrada:
+                                    - type="tel": para números de telefone.
+                                -->
+                                <input id="inputTelCadastro" class="form-control" type="tel" placeholder="(11) 91234-5678" required>
+                            </div>
+                        </div>
+
+                        <!-- Bloco para o campo de senha (mesma lógica dos campos anteriores).  -->
+                        <div class="mb-3 text-start">
+                            <!-- Label associada ao campo de senha (via atributo "for"). -->
+                            <label for="inputPasswordCadastro" class="form-label">Senha</label>
+
+                            <!-- Agrupa ícone e campo de senha em uma única linha. -->
+                            <div class="input-group">
+                                <!-- Ícone de chave para indicar campo de senha. -->
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <!-- 
+                                    Campo de entrada:
+                                    - type="password": oculta caracteres digitados.
+                                -->
+                                <input id="inputPasswordCadastro" class="form-control" type="password" placeholder="Digite sua senha" required>
+                            </div>
+                        </div>
+
+                        <!-- Centraliza e expande o botão. -->
+                        <div class="d-grid gap-2">
+                            
+                            <!-- Botão de envio do formulário. -->
+                            <input type="submit" class="btn btn-primary" id="btnCadastrar" value="Cadastrar">
+                        </div>
+                    </form>
+                    <!-- Fim do formulário de cadastro. -->
+
+                    <!-- Links adicionais abaixo do formulário. -->
+                    <div id="acoesCadastro">
+
+                        <!-- Link para página de login. -->
+                        <a href="/index.html" class="login">Já tem conta? Faça Login</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <!-- Fim do card de cadastro. -->
+
+        <!-- Rodapé da página. -->
+        <footer id="footer" class="container-fluid text-center py-2 mt-auto bg-light border-top">
+            <small>NotaDez - 2025 — Criado para facilitar a vida dos docentes</small>
+        </footer>
+
+        <!-- 
+            Importa o JavaScript do Bootstrap.
+            - "bootstrap.bundle.min.js": inclui tanto o Bootstrap JS quanto o Popper.js (necessário para tooltips, dropdowns, offcanvas, modais etc.).
+            - O uso via CDN garante que o navegador baixe a biblioteca diretamente da rede de distribuição de conteúdo (rápido e confiável).
+        -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="/scripts/cadastro.js"></script>
+    </body>
+</html>
