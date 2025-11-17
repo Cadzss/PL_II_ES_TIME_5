@@ -134,6 +134,23 @@ db.serialize(() => {
       FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
     )
   `);
+
+  // Cria a tabela de notas
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      turma_id INTEGER NOT NULL,
+      disciplina_id INTEGER NOT NULL,
+      aluno_id INTEGER NOT NULL,
+      nota REAL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
+      FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+      FOREIGN KEY (aluno_id) REFERENCES alunos(id) ON DELETE CASCADE,
+      UNIQUE(turma_id, disciplina_id, aluno_id)
+    )
+  `);
 });
 
 // Exporta a conexão do banco de dados para ser usada em outros arquivos

@@ -1,14 +1,14 @@
 // autor: Cadu Spadari
-// Importa tipos do Express para requisições e respostas
-import { Router, Request, Response } from 'express';
+// Importa o Express (biblioteca para criar servidor web)
+import express from 'express';
 // Importa a conexão do banco de dados
 import db from '../database';
 
 // Cria um roteador do Express para agrupar as rotas de turmas
-const router = Router();
+const router = express.Router();
 
 // Rota GET /api/turmas - Lista todas as turmas
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', function(req: any, res: any) {
   // Query SQL para buscar todas as turmas com informações do curso e instituição
   const sql = `
     SELECT 
@@ -26,7 +26,7 @@ router.get('/', (_req: Request, res: Response) => {
   `;
   
   // Executa a query no banco de dados
-  db.all(sql, [], (err, rows) => {
+  db.all(sql, [], function(err: any, rows: any) {
     // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -38,9 +38,9 @@ router.get('/', (_req: Request, res: Response) => {
 });
 
 // Rota GET /api/turmas/:id - Busca uma turma específica por ID
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', function(req: any, res: any) {
   // Extrai o ID da URL
-  const { id } = req.params;
+  const id = req.params.id;
 
   // Query SQL para buscar a turma pelo ID com informações do curso e instituição
   const sql = `
@@ -59,7 +59,7 @@ router.get('/:id', (req: Request, res: Response) => {
   `;
   
   // Executa a query no banco de dados
-  db.get(sql, [id], (err, row: any) => {
+  db.get(sql, [id], function(err: any, row: any) {
     // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -76,12 +76,14 @@ router.get('/:id', (req: Request, res: Response) => {
 });
 
 // Rota POST /api/turmas - Cria uma nova turma
-router.post('/', (req: Request, res: Response) => {
+router.post('/', function(req: any, res: any) {
   // Extrai os dados do corpo da requisição
-  const { nome, curso_id, disciplina_ids } = req.body ?? {};
+  const nome = req.body.nome;
+  const cursoId = req.body.curso_id;
+  const disciplinaIds = req.body.disciplina_ids;
 
   // Valida se os campos obrigatórios foram preenchidos
-  if (!nome || !curso_id) {
+  if (!nome || !cursoId) {
     return res.status(400).json({ 
       error: 'Nome da turma e ID do curso são obrigatórios' 
     });
@@ -91,7 +93,7 @@ router.post('/', (req: Request, res: Response) => {
   const sqlTurma = 'INSERT INTO turmas (nome, curso_id) VALUES (?, ?)';
   
   // Executa a query para inserir a turma
-  db.run(sqlTurma, [nome, curso_id], function (err) {
+  db.run(sqlTurma, [nome, cursoId], function (err: any) {
     // Se houver erro, retorna erro
     if (err) {
       // Verifica se o erro é de turma duplicada no mesmo curso
@@ -109,60 +111,62 @@ router.post('/', (req: Request, res: Response) => {
     const turmaId = this.lastID;
 
     // Se houver disciplinas para associar
-    if (disciplina_ids && Array.isArray(disciplina_ids) && disciplina_ids.length > 0) {
-      // Prepara a query para inserir as associações turma-disciplina
-      const sqlDisciplina = 'INSERT INTO turma_disciplinas (turma_id, disciplina_id) VALUES (?, ?)';
-      const stmt = db.prepare(sqlDisciplina);
-      
-      // Insere cada associação
-      let inseridos = 0;
-      let erros: string[] = [];
+    if (disciplinaIds && Array.isArray(disciplinaIds) && disciplinaIds.length > 0) {
+      // Processa cada disciplina sequencialmente
+      var processadas = 0;
+      var erros: string[] = [];
 
-      disciplina_ids.forEach((disciplinaId: number) => {
-        stmt.run([turmaId, disciplinaId], function (err) {
-          if (err) {
-            erros.push(err.message);
-          }
-          inseridos++;
-          // Se todas as disciplinas foram processadas
-          if (inseridos === disciplina_ids.length) {
-            stmt.finalize();
-            // Se houver erros, retorna erro parcial
-            if (erros.length > 0) {
-              return res.status(207).json({ 
-                id: turmaId, 
-                nome,
-                curso_id: Number(curso_id),
-                disciplina_ids,
-                avisos: erros
-              });
-            }
-            // Retorna sucesso
-            return res.status(201).json({ 
+      function processarDisciplina(index: number) {
+        if (index >= disciplinaIds.length) {
+          // Todas as disciplinas foram processadas
+          if (erros.length > 0) {
+            return res.status(207).json({ 
               id: turmaId, 
-              nome,
-              curso_id: Number(curso_id),
-              disciplina_ids
+              nome: nome,
+              curso_id: Number(cursoId),
+              disciplina_ids: disciplinaIds,
+              avisos: erros
             });
           }
+          // Retorna sucesso
+          return res.status(201).json({ 
+            id: turmaId, 
+            nome: nome,
+            curso_id: Number(cursoId),
+            disciplina_ids: disciplinaIds
+          });
+        }
+
+        var disciplinaId = disciplinaIds[index];
+        var sqlDisciplina = 'INSERT OR IGNORE INTO turma_disciplinas (turma_id, disciplina_id) VALUES (?, ?)';
+        
+        db.run(sqlDisciplina, [turmaId, disciplinaId], function(errDisciplina: any) {
+          if (errDisciplina) {
+            erros.push(errDisciplina.message);
+          }
+          processadas++;
+          processarDisciplina(index + 1);
         });
-      });
+      }
+
+      // Inicia o processamento
+      processarDisciplina(0);
     } else {
       // Se não houver disciplinas, retorna sucesso
       return res.status(201).json({ 
         id: turmaId, 
-        nome,
-        curso_id: Number(curso_id)
+        nome: nome,
+        curso_id: Number(cursoId)
       });
     }
   });
 });
 
 // Rota PUT /api/turmas/:id - Atualiza uma turma existente
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', function(req: any, res: any) {
   // Extrai o ID da URL e o nome do corpo da requisição
-  const { id } = req.params;
-  const { nome } = req.body ?? {};
+  const id = req.params.id;
+  const nome = req.body.nome;
 
   // Valida se o nome foi preenchido
   if (!nome) {
@@ -173,7 +177,7 @@ router.put('/:id', (req: Request, res: Response) => {
   const sql = 'UPDATE turmas SET nome = ? WHERE id = ?';
   
   // Executa a query no banco de dados
-  db.run(sql, [nome, id], function (err) {
+  db.run(sql, [nome, id], function (err: any) {
     // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -185,20 +189,20 @@ router.put('/:id', (req: Request, res: Response) => {
     }
     
     // Retorna sucesso
-    return res.json({ id: Number(id), nome });
+    return res.json({ id: Number(id), nome: nome });
   });
 });
 
 // Rota DELETE /api/turmas/:id - Exclui uma turma
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', function(req: any, res: any) {
   // Extrai o ID da URL
-  const { id } = req.params;
+  const id = req.params.id;
 
   // Query SQL para excluir a turma (as associações serão excluídas automaticamente por CASCADE)
   const sql = 'DELETE FROM turmas WHERE id = ?';
   
   // Executa a query no banco de dados
-  db.run(sql, [id], function (err) {
+  db.run(sql, [id], function (err: any) {
     // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -215,9 +219,9 @@ router.delete('/:id', (req: Request, res: Response) => {
 });
 
 // Rota GET /api/turmas/:id/alunos - Lista todos os alunos de uma turma
-router.get('/:id/alunos', (req: Request, res: Response) => {
+router.get('/:id/alunos', function(req: any, res: any) {
   // Extrai o ID da turma da URL
-  const { id } = req.params;
+  const id = req.params.id;
 
   // Query SQL para buscar todos os alunos da turma
   const sql = `
@@ -233,7 +237,7 @@ router.get('/:id/alunos', (req: Request, res: Response) => {
   `;
   
   // Executa a query no banco de dados
-  db.all(sql, [id], (err, rows) => {
+  db.all(sql, [id], function(err: any, rows: any) {
     // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -245,9 +249,9 @@ router.get('/:id/alunos', (req: Request, res: Response) => {
 });
 
 // Rota GET /api/turmas/:id/disciplinas - Lista todas as disciplinas de uma turma
-router.get('/:id/disciplinas', (req: Request, res: Response) => {
+router.get('/:id/disciplinas', function(req: any, res: any) {
   // Extrai o ID da turma da URL
-  const { id } = req.params;
+  const id = req.params.id;
 
   // Query SQL para buscar todas as disciplinas da turma
   const sql = `
@@ -262,7 +266,7 @@ router.get('/:id/disciplinas', (req: Request, res: Response) => {
   `;
   
   // Executa a query no banco de dados
-  db.all(sql, [id], (err, rows) => {
+  db.all(sql, [id], function(err: any, rows: any) {
     // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });

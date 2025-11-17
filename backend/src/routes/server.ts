@@ -15,6 +15,7 @@ import cursosRoutes from './cursos';
 import disciplinasRoutes from './disciplinas';
 import turmasRoutes from './turmas';
 import alunosRoutes from './alunos';
+import notasRoutes from './notas';
 import cadastroInicialRoutes from './cadastro-inicial';
 
 // Cria uma instância do Express
@@ -57,6 +58,9 @@ app.use('/api/turmas', turmasRoutes);
 
 // Rotas de alunos (CRUD completo, importação CSV)
 app.use('/api/alunos', alunosRoutes);
+
+// Rotas de notas (CRUD completo)
+app.use('/api/notas', notasRoutes);
 
 // ========== SERVIÇO DE ARQUIVOS ESTÁTICOS ==========
 // Serve os arquivos estáticos do frontend (HTML, CSS, JS)
