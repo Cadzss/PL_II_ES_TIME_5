@@ -1,153 +1,173 @@
-// autor: Cadu Spadari
-// Importa o Express (biblioteca para criar servidor web)
-import express from 'express';
-// Importa a conexão do banco de dados
+// Autor Geral: Cadu Spadari - Autor Código BD: Felipe N. C. Moussa
+// Express & BD
+import { Router, Request, Response } from 'express';
 import db from '../database';
+const router = Router();
 
-// Cria um roteador do Express para agrupar as rotas de disciplinas
-const router = express.Router();
+// Lista todas as disciplinas (GET)
+router.get('/', function(_req: Request, res: Response) {
+  const sql = `
+    SELECT
+      id_disciplina AS id,
+      nome_disciplina AS nome,
+      sigla,
+      codigo,
+      periodo,
+      formula_calculo
+    FROM DISCIPLINA
+    ORDER BY nome_disciplina ASC
+  `;
 
-// Rota GET /api/disciplinas - Lista todas as disciplinas
-router.get('/', function(req: any, res: any) {
-  // Query SQL para buscar todas as disciplinas ordenadas por nome
-  const sql = 'SELECT * FROM disciplinas ORDER BY nome ASC';
-  
-  // Executa a query no banco de dados
   db.all(sql, [], function(err: any, rows: any) {
-    // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    
-    // Retorna a lista de disciplinas
     return res.json(rows);
   });
 });
 
-// Rota GET /api/disciplinas/:id - Busca uma disciplina específica por ID
-router.get('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL
+// Busca disciplina por ID (GET)
+router.get('/:id', function(req: Request, res: Response) {
   const id = req.params.id;
 
-  // Query SQL para buscar a disciplina pelo ID
-  const sql = 'SELECT * FROM disciplinas WHERE id = ?';
-  
-  // Executa a query no banco de dados
+  const sql = `
+    SELECT
+      id_disciplina AS id,
+      nome_disciplina AS nome,
+      sigla,
+      codigo,
+      periodo,
+      formula_calculo
+    FROM DISCIPLINA
+    WHERE id_disciplina = ?
+  `;
+
   db.get(sql, [id], function(err: any, row: any) {
-    // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se não encontrar a disciplina, retorna erro 404
     if (!row) {
       return res.status(404).json({ error: 'Disciplina não encontrada' });
     }
 
-    // Retorna os dados da disciplina
     return res.json(row);
   });
 });
 
-// Rota POST /api/disciplinas - Cria uma nova disciplina
-router.post('/', function(req: any, res: any) {
-  // Extrai os dados da disciplina do corpo da requisição
+// Cria nova disciplina (POST)
+router.post('/', function(req: Request, res: Response) {
   const nome = req.body.nome;
   const sigla = req.body.sigla;
   const codigo = req.body.codigo;
   const periodo = req.body.periodo;
+  const formula_calculo = req.body.formula_calculo ?? null;
+  const curso_id_body = req.body.curso_id !== undefined && req.body.curso_id !== null
+  ? Number(req.body.curso_id)
+  : null;
 
-  // Valida se o nome foi preenchido
   if (!nome) {
     return res.status(400).json({ error: 'Nome da disciplina é obrigatório' });
   }
 
-  // Query SQL para inserir a nova disciplina
-  const sql = 'INSERT INTO disciplinas (nome, sigla, codigo, periodo) VALUES (?, ?, ?, ?)';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [nome, sigla || null, codigo || null, periodo || null], function (err: any) {
-    // Se houver erro, retorna erro 500
+  const inserirDisciplina = (fk_curso_id: number) => {
+    const sql = `
+      INSERT INTO DISCIPLINA (nome_disciplina, sigla, codigo, periodo, formula_calculo, fk_curso_id_curso)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(sql, [nome, sigla || null, codigo || null, periodo || null, formula_calculo, fk_curso_id], function (err: any) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      return res.status(201).json({
+        id: this.lastID,
+        nome,
+        sigla: sigla || null,
+        codigo: codigo || null,
+        periodo: periodo || null,
+        formula_calculo: formula_calculo
+      });
+    });
+  };
+
+  if (curso_id_body !== null && !Number.isNaN(curso_id_body)) {
+    return inserirDisciplina(Number(curso_id_body));
+  }
+
+  db.get('SELECT id_curso FROM CURSO LIMIT 1', [], (err: any, row: any) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    
-    // Retorna os dados da disciplina criada
-    return res.status(201).json({ 
-      id: this.lastID, 
-      nome: nome,
-      sigla: sigla || null,
-      codigo: codigo || null,
-      periodo: periodo || null
-    });
+
+    if (!row || !row.id_curso) {
+      return res.status(400).json({
+        error: 'Não existe curso cadastrado no sistema. Para criar uma disciplina, crie primeiro um curso ou envie "curso_id" no corpo da requisição.'
+      });
+    }
+
+    return inserirDisciplina(row.id_curso);
   });
 });
 
-// Rota PUT /api/disciplinas/:id - Atualiza uma disciplina existente
-router.put('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL e os dados do corpo da requisição
+// Atualiza disciplina (PUT)
+router.put('/:id', function(req: Request, res: Response) {
   const id = req.params.id;
   const nome = req.body.nome;
   const sigla = req.body.sigla;
   const codigo = req.body.codigo;
   const periodo = req.body.periodo;
+  const formula_calculo = req.body.formula_calculo ?? null;
 
-  // Valida se o nome foi preenchido
   if (!nome) {
     return res.status(400).json({ error: 'Nome da disciplina é obrigatório' });
   }
 
-  // Query SQL para atualizar a disciplina
-  const sql = 'UPDATE disciplinas SET nome = ?, sigla = ?, codigo = ?, periodo = ? WHERE id = ?';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [nome, sigla || null, codigo || null, periodo || null, id], function (err: any) {
-    // Se houver erro, retorna erro 500
+  const sql = `
+    UPDATE DISCIPLINA
+    SET nome_disciplina = ?, sigla = ?, codigo = ?, periodo = ?, formula_calculo = ?
+    WHERE id_disciplina = ?
+  `;
+
+  db.run(sql, [nome, sigla || null, codigo || null, periodo || null, formula_calculo, id], function (err: any) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se nenhuma linha foi afetada, a disciplina não existe
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Disciplina não encontrada' });
     }
-    
-    // Retorna sucesso
-    return res.json({ 
-      id: Number(id), 
-      nome: nome,
+
+    return res.json({
+      id: Number(id),
+      nome,
       sigla: sigla || null,
       codigo: codigo || null,
-      periodo: periodo || null
+      periodo: periodo || null,
+      formula_calculo: formula_calculo
     });
   });
 });
 
-// Rota DELETE /api/disciplinas/:id - Exclui uma disciplina
-router.delete('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL
+// Exclui disciplina (DELETE)
+router.delete('/:id', function(req: Request, res: Response) {
   const id = req.params.id;
 
-  // Query SQL para excluir a disciplina
-  const sql = 'DELETE FROM disciplinas WHERE id = ?';
-  
-  // Executa a query no banco de dados
+  const sql = 'DELETE FROM DISCIPLINA WHERE id_disciplina = ?';
+
   db.run(sql, [id], function (err: any) {
-    // Se houver erro, retorna erro 500
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se nenhuma linha foi afetada, a disciplina não existe
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Disciplina não encontrada' });
     }
-    
-    // Retorna sucesso
+
     return res.json({ message: 'Disciplina excluída com sucesso' });
   });
 });
 
-// Exporta o roteador para ser usado no servidor principal
+// Exportar Router
 export default router;
-
