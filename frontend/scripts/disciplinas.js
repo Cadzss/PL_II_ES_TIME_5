@@ -219,7 +219,14 @@ function exibirDisciplinas() {
 // Função para criar uma nova disciplina
 function criarDisciplina() {
   var inputNome = document.getElementById('inputNovaDisciplina');
+  var inputSigla = document.getElementById('inputSiglaDisciplina');
+  var inputCodigo = document.getElementById('inputCodigoDisciplina');
+  var inputPeriodo = document.getElementById('periodo');
+  
   var nome = inputNome.value.trim();
+  var sigla = inputSigla.value.trim();
+  var codigo = inputCodigo.value.trim();
+  var periodo = inputPeriodo.value.trim();
 
   esconderAlertas();
 
@@ -263,7 +270,12 @@ function criarDisciplina() {
   };
   
   // Prepara os dados para enviar
-  var dados = { nome: nome };
+  var dados = { 
+    nome: nome,
+    sigla: sigla,
+    codigo: codigo,
+    periodo: periodo
+  };
   
   // Envia a requisição
   xhr.send(JSON.stringify(dados));
@@ -293,7 +305,15 @@ function abrirModalEditar(disciplinaId) {
 
 // Função para salvar edição
 function salvarEdicaoDisciplina() {
-  var novoNome = document.getElementById('inputNomeEditar').value.trim();
+  var inputNome = document.getElementById('inputNomeEditar');
+  var inputSigla = document.getElementById('inputSiglaEditar');
+  var inputCodigo = document.getElementById('inputCodigoEditar');
+  var inputPeriodo = document.getElementById('inputPeriodoEditar');
+  
+  var novoNome = inputNome.value.trim();
+  var novaSigla = inputSigla.value.trim();
+  var novoCodigo = inputCodigo.value.trim();
+  var novoPeriodo = inputPeriodo.value.trim();
 
   if (novoNome === '') {
     mostrarAlerta('alertCampos');
@@ -333,7 +353,12 @@ function salvarEdicaoDisciplina() {
   };
   
   // Prepara os dados para enviar
-  var dados = { nome: novoNome };
+  var dados = { 
+    nome: novoNome,
+    sigla: novaSigla,
+    codigo: novoCodigo,
+    periodo: novoPeriodo
+  };
   
   // Envia a requisição
   xhr.send(JSON.stringify(dados));

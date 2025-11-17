@@ -58,9 +58,23 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS disciplinas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
+      sigla TEXT,
+      codigo TEXT,
+      periodo TEXT,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Adiciona as colunas sigla, codigo e periodo se elas não existirem (para bancos já criados)
+  db.run(`ALTER TABLE disciplinas ADD COLUMN sigla TEXT`, function(err: any) {
+    // Ignora erro se a coluna já existir
+  });
+  db.run(`ALTER TABLE disciplinas ADD COLUMN codigo TEXT`, function(err: any) {
+    // Ignora erro se a coluna já existir
+  });
+  db.run(`ALTER TABLE disciplinas ADD COLUMN periodo TEXT`, function(err: any) {
+    // Ignora erro se a coluna já existir
+  });
 
   // Cria a tabela de turmas
   db.run(`
