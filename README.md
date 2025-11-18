@@ -1,5 +1,3 @@
-# Projeto-Integrador--Grupo-V
-Repositorio do projeto da disciplina projeto integrador- Grupo V
 <h1 align="center">📘 NotaDez – Projeto Integrador II (2025)</h1>
 <h2 align="center">Time 5 • Repositório do Projeto NotaDez</h2>
 <h3 align="center">Pontifícia Universidade Católica de Campinas – PUC-Campinas</h3>
