@@ -298,6 +298,7 @@ function abrirModalEditar(disciplinaId) {
   document.getElementById('inputSiglaEditar').value = disciplina.sigla || '';
   document.getElementById('inputCodigoEditar').value = disciplina.codigo || '';
   document.getElementById('inputPeriodoEditar').value = disciplina.periodo || '';
+  document.getElementById('inputFormulaNotaFinal').value = disciplina.formula_nota_final || '';
   
   var modal = new bootstrap.Modal(document.getElementById('modalEditarDisciplinas'));
   modal.show();
@@ -309,11 +310,13 @@ function salvarEdicaoDisciplina() {
   var inputSigla = document.getElementById('inputSiglaEditar');
   var inputCodigo = document.getElementById('inputCodigoEditar');
   var inputPeriodo = document.getElementById('inputPeriodoEditar');
+  var inputFormula = document.getElementById('inputFormulaNotaFinal');
   
   var novoNome = inputNome.value.trim();
   var novaSigla = inputSigla.value.trim();
   var novoCodigo = inputCodigo.value.trim();
   var novoPeriodo = inputPeriodo.value.trim();
+  var novaFormula = inputFormula.value.trim();
 
   if (novoNome === '') {
     mostrarAlerta('alertCampos');
@@ -357,7 +360,8 @@ function salvarEdicaoDisciplina() {
     nome: novoNome,
     sigla: novaSigla,
     codigo: novoCodigo,
-    periodo: novoPeriodo
+    periodo: novoPeriodo,
+    formula_nota_final: novaFormula || null
   };
   
   // Envia a requisição

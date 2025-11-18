@@ -91,34 +91,150 @@ router.put('/:id', function(req: any, res: any) {
   const sigla = req.body.sigla;
   const codigo = req.body.codigo;
   const periodo = req.body.periodo;
+  const formulaNotaFinal = req.body.formula_nota_final;
 
   // Valida se o nome foi preenchido
   if (!nome) {
     return res.status(400).json({ error: 'Nome da disciplina é obrigatório' });
   }
 
-  // Query SQL para atualizar a disciplina
-  const sql = 'UPDATE disciplinas SET nome = ?, sigla = ?, codigo = ?, periodo = ? WHERE id = ?';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [nome, sigla || null, codigo || null, periodo || null, id], function (err: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
+  // Se houver fórmula, valida se todos os componentes estão sendo utilizados
+  if (formulaNotaFinal && formulaNotaFinal.trim() !== '') {
+    db.all('SELECT sigla FROM componentes_nota WHERE disciplina_id = ?', [id], function(errComponentes: any, componentes: any) {
+      if (errComponentes) {
+        return res.status(500).json({ error: errComponentes.message });
+      }
+
+      // Se houver componentes cadastrados, valida se todos estão na fórmula
+      if (componentes && componentes.length > 0) {
+        var componentesNaoUsados = [];
+        for (var i = 0; i < componentes.length; i++) {
+          var sigla = componentes[i].sigla;
+          // Verifica se a sigla está na fórmula (usando regex para encontrar palavra completa)
+          var regex = new RegExp('\\b' + sigla.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+          if (!regex.test(formulaNotaFinal)) {
+            componentesNaoUsados.push(sigla);
+          }
+        }
+
+        if (componentesNaoUsados.length > 0) {
+          return res.status(400).json({ 
+            error: 'A fórmula deve utilizar todos os componentes cadastrados. Componentes não utilizados: ' + componentesNaoUsados.join(', ')
+          });
+        }
+      }
+
+      // Query SQL para atualizar a disciplina
+      const sql = 'UPDATE disciplinas SET nome = ?, sigla = ?, codigo = ?, periodo = ?, formula_nota_final = ? WHERE id = ?';
+      
+      // Executa a query no banco de dados
+      db.run(sql, [nome, sigla || null, codigo || null, periodo || null, formulaNotaFinal || null, id], function (err: any) {
+        // Se houver erro, retorna erro 500
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+
+        // Se nenhuma linha foi afetada, a disciplina não existe
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Disciplina não encontrada' });
+        }
+        
+        // Retorna sucesso
+        return res.json({ 
+          id: Number(id), 
+          nome: nome,
+          sigla: sigla || null,
+          codigo: codigo || null,
+          periodo: periodo || null,
+          formula_nota_final: formulaNotaFinal || null
+        });
+      });
+    });
+  } else {
+    // Se não houver fórmula, atualiza normalmente
+    const sql = 'UPDATE disciplinas SET nome = ?, sigla = ?, codigo = ?, periodo = ?, formula_nota_final = ? WHERE id = ?';
+    
+    // Executa a query no banco de dados
+    db.run(sql, [nome, sigla || null, codigo || null, periodo || null, formulaNotaFinal || null, id], function (err: any) {
+      // Se houver erro, retorna erro 500
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      // Se nenhuma linha foi afetada, a disciplina não existe
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Disciplina não encontrada' });
+      }
+      
+      // Retorna sucesso
+      return res.json({ 
+        id: Number(id), 
+        nome: nome,
+        sigla: sigla || null,
+        codigo: codigo || null,
+        periodo: periodo || null,
+        formula_nota_final: formulaNotaFinal || null
+      });
+    });
+  }
+});
+
+// Rota PUT /api/disciplinas/:id/formula - Atualiza apenas a fórmula de nota final
+router.put('/:id/formula', function(req: any, res: any) {
+  // Extrai o ID da URL e a fórmula do corpo da requisição
+  const id = req.params.id;
+  const formulaNotaFinal = req.body.formula_nota_final;
+
+  // Valida se a fórmula foi fornecida
+  if (formulaNotaFinal === undefined || formulaNotaFinal === null) {
+    return res.status(400).json({ error: 'Fórmula de nota final é obrigatória' });
+  }
+
+  // Busca todos os componentes da disciplina para validar a fórmula
+  db.all('SELECT sigla FROM componentes_nota WHERE disciplina_id = ?', [id], function(errComponentes: any, componentes: any) {
+    if (errComponentes) {
+      return res.status(500).json({ error: errComponentes.message });
     }
 
-    // Se nenhuma linha foi afetada, a disciplina não existe
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Disciplina não encontrada' });
+    // Se houver componentes cadastrados, valida se todos estão na fórmula
+    if (componentes && componentes.length > 0) {
+      var componentesNaoUsados = [];
+      for (var i = 0; i < componentes.length; i++) {
+        var sigla = componentes[i].sigla;
+        // Verifica se a sigla está na fórmula (usando regex para encontrar palavra completa)
+        var regex = new RegExp('\\b' + sigla.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+        if (!regex.test(formulaNotaFinal)) {
+          componentesNaoUsados.push(sigla);
+        }
+      }
+
+      if (componentesNaoUsados.length > 0) {
+        return res.status(400).json({ 
+          error: 'A fórmula deve utilizar todos os componentes cadastrados. Componentes não utilizados: ' + componentesNaoUsados.join(', ')
+        });
+      }
     }
+
+    // Query SQL para atualizar apenas a fórmula
+    const sql = 'UPDATE disciplinas SET formula_nota_final = ? WHERE id = ?';
     
-    // Retorna sucesso
-    return res.json({ 
-      id: Number(id), 
-      nome: nome,
-      sigla: sigla || null,
-      codigo: codigo || null,
-      periodo: periodo || null
+    // Executa a query no banco de dados
+    db.run(sql, [formulaNotaFinal, id], function (err: any) {
+      // Se houver erro, retorna erro 500
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      // Se nenhuma linha foi afetada, a disciplina não existe
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Disciplina não encontrada' });
+      }
+      
+      // Retorna sucesso
+      return res.json({ 
+        id: Number(id), 
+        formula_nota_final: formulaNotaFinal
+      });
     });
   });
 });

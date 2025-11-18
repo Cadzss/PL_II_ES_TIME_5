@@ -508,7 +508,7 @@ function salvarEdicaoTurma() {
 
 // Função para excluir turma
 function excluirTurma(turmaId) {
-  if (!confirm('Tem certeza que deseja excluir esta turma?')) {
+  if (!confirm('Tem certeza que deseja excluir esta turma?\n\nATENÇÃO: Esta operação é irreversível. Todas as notas e alunos associados serão excluídos permanentemente.')) {
     return;
   }
 

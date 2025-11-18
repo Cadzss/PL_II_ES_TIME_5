@@ -75,6 +75,23 @@ db.serialize(() => {
   db.run(`ALTER TABLE disciplinas ADD COLUMN periodo TEXT`, function(err: any) {
     // Ignora erro se a coluna já existir
   });
+  db.run(`ALTER TABLE disciplinas ADD COLUMN formula_nota_final TEXT`, function(err: any) {
+    // Ignora erro se a coluna já existir
+  });
+
+  // Cria a tabela de componentes de nota (P1, P2, P3, etc.)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS componentes_nota (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      disciplina_id INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      sigla TEXT NOT NULL,
+      descricao TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+      UNIQUE(disciplina_id, sigla)
+    )
+  `);
 
   // Cria a tabela de turmas
   db.run(`
@@ -135,22 +152,60 @@ db.serialize(() => {
     )
   `);
 
-  // Cria a tabela de notas
+  // Cria a tabela de notas (refatorada para usar componentes)
   db.run(`
     CREATE TABLE IF NOT EXISTS notas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       turma_id INTEGER NOT NULL,
       disciplina_id INTEGER NOT NULL,
       aluno_id INTEGER NOT NULL,
+      componente_id INTEGER NOT NULL,
       nota REAL,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
       FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
       FOREIGN KEY (aluno_id) REFERENCES alunos(id) ON DELETE CASCADE,
-      UNIQUE(turma_id, disciplina_id, aluno_id)
+      FOREIGN KEY (componente_id) REFERENCES componentes_nota(id) ON DELETE CASCADE,
+      UNIQUE(turma_id, disciplina_id, aluno_id, componente_id)
     )
   `);
+
+  // Adiciona coluna componente_id na tabela notas se ela não existir (para bancos já criados)
+  db.run(`ALTER TABLE notas ADD COLUMN componente_id INTEGER`, function(err: any) {
+    // Ignora erro se a coluna já existir
+    if (!err) {
+      // Se a coluna foi adicionada, cria uma foreign key
+      db.run(`CREATE INDEX IF NOT EXISTS idx_notas_componente ON notas(componente_id)`, function(err2: any) {
+        // Ignora erro
+      });
+    }
+  });
+
+  // Cria a tabela de auditoria de notas (log de alterações)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS auditoria_notas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nota_id INTEGER NOT NULL,
+      turma_id INTEGER NOT NULL,
+      disciplina_id INTEGER NOT NULL,
+      aluno_id INTEGER NOT NULL,
+      componente_id INTEGER NOT NULL,
+      nota_anterior REAL,
+      nota_nova REAL,
+      acao TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (nota_id) REFERENCES notas(id) ON DELETE CASCADE,
+      FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
+      FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+      FOREIGN KEY (aluno_id) REFERENCES alunos(id) ON DELETE CASCADE,
+      FOREIGN KEY (componente_id) REFERENCES componentes_nota(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Cria índice para melhorar performance nas consultas de auditoria
+  db.run(`CREATE INDEX IF NOT EXISTS idx_auditoria_nota_id ON auditoria_notas(nota_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_auditoria_criado_em ON auditoria_notas(criado_em DESC)`);
 });
 
 // Exporta a conexão do banco de dados para ser usada em outros arquivos
