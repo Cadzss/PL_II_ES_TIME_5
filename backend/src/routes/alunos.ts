@@ -48,14 +48,13 @@ router.get('/:id', (req: Request, res: Response) => {
   });
 });
 
-// Criar Aluno (POST)
 router.post('/', (req: Request, res: Response) => {
-  const { identificador, nome } = req.body ?? {};
+  // ATENÇÃO: Adicionado 'turma_id' para uso na matrícula
+  const { identificador, nome, turma_id } = req.body; 
 
-  if (!identificador || !nome) {
-    return res.status(400).json({
-      error: 'Identificador e nome do aluno são obrigatórios'
-    });
+  // Validação: 'turma_id' é necessário para a matrícula
+  if (!identificador || !nome || !turma_id) {
+    return res.status(400).json({ error: 'Campos identificador, nome e turma_id são obrigatórios.' });
   }
 
   const checkSql = `SELECT 1 FROM ALUNO WHERE matricula = ? LIMIT 1`;
@@ -67,16 +66,28 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Identificador já cadastrado' });
     }
 
-    const insertSql = `INSERT INTO ALUNO (matricula, nome_completo) VALUES (?, ?)`;
-    db.run(insertSql, [identificador, nome], function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      return res.status(201).json({
-        id: this.lastID,
-        identificador,
-        nome
+    db.serialize(() => {
+      // 1. Inserir na tabela ALUNO
+      const insertAlunoSql = `INSERT INTO ALUNO (matricula, nome_completo) VALUES (?, ?)`;
+      db.run(insertAlunoSql, [identificador, nome], function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Erro ao inserir aluno: ' + err.message });
+        }
+  
+        const alunoId = this.lastID; // ID do aluno recém-criado
+  
+        // 2. Inserir na tabela MATRICULA_TURMA
+        const insertMatriculaSql = 'INSERT INTO MATRICULA_TURMA (fk_turma_id_turma, fk_aluno_id_aluno) VALUES (?, ?)';
+        db.run(insertMatriculaSql, [turma_id, alunoId], (errMatricula: any) => {
+          if (errMatricula) {
+            // Em caso de erro na matrícula, o ideal seria reverter a inserção do ALUNO (necessita de transação, mas simplificaremos)
+            console.error("Erro ao matricular aluno:", errMatricula.message);
+            return res.status(500).json({ error: 'Aluno criado, mas erro ao matricular: ' + errMatricula.message });
+          }
+          
+          // Sucesso: Aluno criado E matriculado.
+          res.status(201).json({ id: alunoId, identificador, nome, message: 'Aluno cadastrado e matriculado com sucesso.' });
+        });
       });
     });
   });
@@ -263,21 +274,57 @@ router.put('/:id', (req: Request, res: Response) => {
 });
 
 // Exclui Aluno (DELETE)
+// Exclui Aluno (DELETE) - CORRIGIDO PARA LIMPAR DEPENDÊNCIAS
 router.delete('/:id', (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const sql = 'DELETE FROM ALUNO WHERE id_aluno = ?';
+  db.serialize(() => {
+    // Inicia a transação
+    db.run('BEGIN TRANSACTION;');
 
-  db.run(sql, [id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    // 1. Deleta registros dependentes em REGISTRO_NOTA
+    const sqlDeleteNotas = 'DELETE FROM REGISTRO_NOTA WHERE fk_aluno_id_aluno = ?';
+    db.run(sqlDeleteNotas, [id], (err) => {
+      if (err) {
+        db.run('ROLLBACK;'); // Reverte tudo
+        console.error("Erro ao deletar REGISTRO_NOTA:", err.message);
+        return res.status(500).json({ error: 'Erro ao deletar notas do aluno.' });
+      }
 
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Aluno não encontrado' });
-    }
+      // 2. Deleta registros dependentes em MATRICULA_TURMA
+      const sqlDeleteMatriculas = 'DELETE FROM MATRICULA_TURMA WHERE fk_aluno_id_aluno = ?';
+      db.run(sqlDeleteMatriculas, [id], (errMatricula) => {
+        if (errMatricula) {
+          db.run('ROLLBACK;'); // Reverte tudo
+          console.error("Erro ao deletar MATRICULA_TURMA:", errMatricula.message);
+          return res.status(500).json({ error: 'Erro ao deletar matrículas do aluno.' });
+        }
 
-    return res.json({ message: 'Aluno excluído com sucesso' });
+        // 3. Deleta o ALUNO
+        const sqlDeleteAluno = 'DELETE FROM ALUNO WHERE id_aluno = ?';
+        db.run(sqlDeleteAluno, [id], function (errAluno) {
+          if (errAluno) {
+            db.run('ROLLBACK;'); // Reverte tudo
+            console.error("Erro ao deletar ALUNO:", errAluno.message);
+            return res.status(500).json({ error: 'Erro ao deletar aluno do sistema.' });
+          }
+
+          if (this.changes === 0) {
+            db.run('ROLLBACK;');
+            return res.status(404).json({ error: 'Aluno não encontrado.' });
+          }
+
+          // Confirma a transação
+          db.run('COMMIT;', (errCommit) => {
+            if (errCommit) {
+              console.error("Erro ao fazer COMMIT:", errCommit.message);
+              return res.status(500).json({ error: 'Erro ao finalizar a exclusão do aluno.' });
+            }
+            return res.json({ message: 'Aluno excluído do sistema com sucesso' });
+          });
+        });
+      });
+    });
   });
 });
 
