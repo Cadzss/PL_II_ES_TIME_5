@@ -1,22 +1,15 @@
-<!-- Autora: Laura Lugli -->
-<!-- Define que a página usa HTML5 e está em português. -->
 <!DOCTYPE html>
 <html lang="pt">
     <head>
-        <!-- Define o conjunto de caracteres e o idioma principal. -->
         <meta charset="utf-8"/>
 
-        <!-- Garante que a página seja responsiva (ajustável a telas menores). -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <!-- Título da aba do navegador -->
         <title>Turmas | NotaDez</title>
 
-        <!-- Importa o CSS base e o CSS específico da página TURMAS. -->
-        <link href="/styles/base.css" rel="stylesheet"/>
-        <link href="/styles/turmas.css" rel="stylesheet"/>
+        <link href="/frontend/styles/base.css" rel="stylesheet"/>
+        <link href="/frontend/styles/turmas.css" rel="stylesheet"/>
 
-        <!-- Importa o Bootstrap (para layout e componentes visuais prontos). -->
         <link 
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" 
             rel="stylesheet" 
@@ -24,52 +17,41 @@
             crossorigin="anonymous" 
         />
 
-        <!-- Importa os ícones do Bootstrap (usados nos botões e seções). -->
         <link 
             rel="stylesheet" 
             href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" 
         />
     </head>
 
-    <!-- BODY -->
     <body class="d-flex flex-column min-vh-100 bg-body-tertiary">
 
-        <!-- NAVBAR (barra de navegação superior fixa) -->
         <nav class="navbar bg-body-tertiary fixed-top shadow-sm">
             <div class="container-fluid px-lg-5">
 
-                <!-- Logotipo/título principal da aplicação -->
                 <a class="navbar-brand fw-semibold" href="#">
                     <i class="bi bi-mortarboard-fill"></i> NotaDez
                 </a>
 
-                <!-- Botão para abrir o menu lateral (offcanvas) em telas pequenas -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <!-- MENU LATERAL -->
                 <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
 
-                    <!-- Cabeçalho do menu lateral -->
                     <div class="offcanvas-header">
                         <h5 class="offcanvas-title fw-semibold" id="offcanvasNavbarLabel">Menu NotaDez</h5>
 
-                        <!-- Botão para fechar o menu lateral -->
                         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
                     </div>
 
-                    <!-- Corpo do menu lateral com os links de navegação -->
                     <div class="offcanvas-body">
                         <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
 
-                            <!-- Cada <li> representa um item de menu. -->
                             <li class="nav-item"><a class="nav-link" href="../pages/home.html"><i class="bi bi-house"></i> Home</a></li>
-                            <li class="nav-item"><a class="nav-link" href="../pages/instituicoes.html">Instituição</a></li>
+                            <li class="nav-item"><a class="nav-link" href="../pages/instituicoes.html">Instituições</a></li>
                             <li class="nav-item"><a class="nav-link" href="../pages/cursos.html">Cursos</a></li>
-                            <li class="nav-item"><a class="nav-link" href="../pages/disciplinas.html">Disciplina</a></li>
+                            <li class="nav-item"><a class="nav-link" href="../pages/disciplinas.html">Disciplinas</a></li>
 
-                            <!-- Item ativo (Turmas) -->
                             <li class="nav-item"><a class="nav-link active fw-semibold" href="../pages/turmas.html">Turmas</a></li>
                             <li class="nav-item"><a class="nav-link" href="../pages/notas.html">Notas</a></li>
                         </ul>
@@ -78,118 +60,90 @@
             </div>
         </nav>
 
-        <!-- MAIN -->
         <main class="flex-grow-1 mt-5 mb-5 d-flex align-items-start justify-content-center">
             <div class="container-fluid bg-white shadow rounded p-5">
 
-                <!-- Título principal da seção -->
                 <h1 class="fw-bold mb-3 display-6">
                     <i class="bi bi-pencil"></i> Turmas
                 </h1>
 
-                <!-- Texto explicativo abaixo do título -->
                 <p class="text-muted mb-4">Crie e organize turmas.</p>
 
-                <!-- ÁREA DE ALERTAS - "d-none": ocultos por padrão, só aparecem via JS. -->
-
-                <!-- Alerta amarelo (warning) quando a turma já existir -->
                 <div class="alert alert-warning d-flex align-items-center d-none" id="alertDuplicada" role="alert" aria-live="polite">
                     <div><i class="bi bi-exclamation-triangle"></i><strong> Turma já cadastrada!</strong></div>
                 </div>
-                <!-- Alerta amarelo (warning) para campos obrigatórios não preenchidos -->
                 <div class="alert alert-warning d-flex align-items-center d-none" id="alertCampos" role="alert" aria-live="polite">
                     <div><i class="bi bi-exclamation-triangle"></i><strong> Campos obrigatórios não preenchidos!</strong></div>
                 </div>
-                <!-- Alerta verde (success) para turma cadastrada com sucesso. -->
                 <div class="alert alert-success d-flex align-items-center d-none" id="alertSucessoCadastro" role="alert" aria-live="polite">
                     <div><i class="bi bi-check-circle"></i><strong> Turma cadastrada com sucesso!</strong></div>
                 </div>
-                <!-- Alerta verde (success) para turma excluída com sucesso. -->
                 <div class="alert alert-success d-flex align-items-center d-none" id="alertSucessoExclusao" role="alert" aria-live="polite">
                     <div><i class="bi bi-check-circle"></i><strong> Turma excluída com sucesso!</strong></div>
                 </div>
-                <!-- Alerta verde (success) para turma editada com sucesso. -->
                 <div class="alert alert-success d-flex align-items-center d-none" id="alertSucessoEdicao" role="alert" aria-live="polite">
                     <div><i class="bi bi-check-circle"></i><strong> Turma editada com sucesso!</strong></div>
                 </div>
-                <!-- Alerta verde (success) para aluno cadastrado com sucesso. -->
                 <div class="alert alert-success d-flex align-items-center d-none" id="alertSucessoAluno" role="alert" aria-live="polite">
                     <div><i class="bi bi-check-circle"></i><strong> Aluno cadastrado com sucesso!</strong></div>
                 </div>
-                <!-- BOTÃO: Abre o modal para cadastrar uma nova turma -->
                 <div class="d-grid gap-2 col-sm-6 col-md-4 mx-auto mb-5">
                     <button type="button" class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#modalNovaTurma">
                         <i class="bi bi-plus-circle"></i> Nova Turma
                     </button>
                 </div>
-                <!-- MODAL PARA NOVA TURMA -->
                 <div class="modal fade" id="modalNovaTurma" tabindex="-1" aria-labelledby="modalNovaTurmaLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content shadow">
 
-                            <!-- Cabeçalho do modal -->
                             <div class="modal-header">
                                 <h1 class="modal-title fs-5" id="modalNovaTurmaLabel">Nova Turma</h1>
 
-                                <!-- Botão para fechar o modal -->
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
 
-                            <!-- Corpo do modal -->
                             <div class="modal-body">
                                 <p class="text-start">Preencha os campos abaixo para adicionar uma nova turma.</p>
 
-                                <!-- Formulário de cadastro -->
                                 <form id="formNovaTurma">
 
-                                    <!-- Campo: Seleção da instituição -->
                                     <div class="mb-3 text-start">
                                         <label for="selectInstituicao" class="form-label">Selecione a instituição correspondente</label>
                                         <div class="input-group">
 
-                                            <!-- Ícone dentro do campo de select -->
                                             <span class="input-group-text"><i class="bi bi-building"></i></span>
                                             <select class="form-select" id="selectInstituicao" required>
                                                 <option value="" selected disabled>Instituições cadastradas</option>
-                                                <!-- Opções adicionadas via JS -->
-                                            </select>
+                                                </select>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Seleção do curso -->
                                     <div class="mb-3 text-start">
                                         <label for="selectCurso" class="form-label">Selecione o curso correspondente</label>
                                         <div class="input-group">
 
-                                            <!-- Ícone dentro do campo de select -->
                                             <span class="input-group-text"><i class="bi bi-journals"></i></span>
                                             <select class="form-select" id="selectCurso" required>
                                                 <option value="" selected disabled>Cursos cadastrados</option>
-                                                <!-- Opções adicionadas via JS -->
-                                            </select>
+                                                </select>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Check das disciplinas -->
                                     <div class="mb-3 text-start">
                                         <label for="disciplinasContainer" class="form-label">Selecione as disciplinas correspondentes</label>
                                         <div id="disciplinasContainer">
-                                            <!-- Checkboxes das disciplinas serão adicionadas via JS -->
-                                        </div>
+                                            </div>
                                     </div>
                                     
-                                    <!-- Campo: Nome da turma -->
                                     <div class="mb-3 text-start">
                                         <label for="inputNovaTurma" class="form-label">Nome da turma</label>
                                         <div class="input-group">
 
-                                            <!-- Ícone dentro do campo de texto -->
                                             <span class="input-group-text"><i class="bi bi-book"></i></span>
                                             <input type="text" class="form-control" id="inputNovaTurma" placeholder="Ex: Turma 101" required/>
                                         </div>
                                     </div>
 
-                                    <!-- Botão para salvar turma -->
                                     <div class="modal-footer">
                                         <button id="btnSalvarCadastro" class="btn btn-primary w-100" type="submit">Salvar Turma</button>
                                     </div>
@@ -198,114 +152,72 @@
                         </div>
                     </div>
                 </div>
-                <!-- LISTA DE TURMAS AGRUPADAS POR INSTITUIÇÃO E CURSO -->
-                <!-- Aqui serão exibidas as instituições, cursos e turmas cadastradas dinamicamente via JavaScript -->
+
                 <div class="container-lg mt-4">
                     <div id="listaturmas" class="d-flex flex-column gap-4">
-                        <!-- As instituições, cursos e turmas serão renderizados aqui -->
-                    </div>
+                        </div>
                 </div>
 
-                <!-- Este template define a estrutura de como uma instituição será exibida -->
                 <template id="templateInstituicao">
                     <div class="instituicao-container">
-
-                        <!-- Título da instituição (nome será inserido dinamicamente) -->
                         <h2 class="fw-bold mb-3 nome-instituicao text-center text-md-start"></h2>
-
-                        <!-- Container para os cursos dentro da instituição -->
                         <div class="row g-4 cursos-container">
-                            <!-- Os cards de cursos serão inseridos aqui dinamicamente -->
-                        </div>
+                            </div>
                     </div>
                 </template>
 
-                <!-- Define como cada curso será exibido dentro da instituição -->
                 <template id="templateCurso">
                     <div class="col-12 col-md-6">
                         <div class="curso-container p-3 shadow-sm bg-white rounded">
-                            <!-- Nome do Curso (será inserido dinamicamente) -->
                             <h5 class="fw-bold nome-curso mb-3 text-center text-md-start"></h5>
-
-                            <!-- Card das turmas -->
-                            <div class="turmas-card border rounded p-3 bg-light">
-                                <h6 class="fw-semibold mb-2">Turmas cadastradas:</h6>
-                                <ul class="lista-turmas list-group list-group-flush">
-                                    <!-- Modelo vazio para as turmas (será clonado e preenchido dinamicamente) -->
-                                    <li class="list-group-item d-flex justify-content-between align-items-center modelo-turma d-none">
-                                        <!-- Nome da turma (será inserido dinamicamente) -->
-                                        <span class="turma-nome"></span>
-
-                                        <!-- Ações para editar ou excluir a turma -->
-                                        <div class="acoes">
-                                            <button type="button" class="btn btn-outline-info btn-sm btn-disciplinas m-1" aria-label="Alunos">
-                                                <i class="bi bi-book"></i> Alunos
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-disciplinas m-1" aria-label="Ver disciplinas">
-                                                <i class="bi bi-book"></i> Disciplinas Associadas
-                                            </button>
-                                            <button type="button" class="btn btn-outline-warning btn-sm m-1" aria-label="Editar turma">
-                                                <i class="bi bi-pencil-square"></i> Editar
-                                            </button>
-                                            <button type="button" class="btn btn-outline-danger btn-sm btn-excluir m-1" aria-label="Excluir turma">
-                                                <i class="bi bi-trash"></i> Excluir
-                                            </button>
-                                        </div>
-                                    </li>
-                                </ul>
+                            <div class="turmas-card border rounded p-3">
+                                <ul class="list-group lista-turmas">
+                                    </ul>
                             </div>
                         </div>
                     </div>
                 </template>
 
-                <!-- Modal para visualizar alunos da turma -->
                 <div class="modal fade" id="modalVerAlunos" tabindex="-1" aria-labelledby="modalVerAlunosLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
                         <div class="modal-content shadow">
+
                             <div class="modal-header">
-                                <h5 class="modal-title" id="modalVerAlunosLabel">Alunos da Turma</h5>
+                                <h5 class="modal-title" id="modalVerAlunosLabel">Gerenciar Alunos</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
-                            <div class="modal-body">
-                                <!-- Nome da turma -->
-                                <p class="mb-2">
-                                    <strong>Turma:</strong>
-                                    <span id="va-turma-nome"></span>
-                                </p>
 
-                                <!-- Botão de adicionar aluno (agora no topo) -->
-                                <button type="button" class="btn btn-primary w-100 mb-3" id="btnAdicionarAluno" data-bs-toggle="modal" data-bs-target="#modalImportarAlunos">
-                                    <i class="bi bi-person-plus"></i> Adicionar novos alunos
+                            <div class="modal-body">
+                                <p class="mb-2">
+                                    <strong>Turma:</strong> <span id="va-turma-nome"></span>
+                                </p>
+                                
+                                <button 
+                                    type="button" 
+                                    class="btn btn-primary w-100 mb-3" 
+                                    id="btnAdicionarAlunoManual" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalAdicionarAlunoManual">
+                                    <i class="bi bi-person-plus"></i> Adicionar novo aluno manualmente
                                 </button>
 
-                                <!-- Lista real onde os alunos serão carregados -->
-                                <ul id="va-lista-alunos" class="list-group">
-                                    <!-- Itens serão inseridos via JS -->
-                                </ul>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-primary w-100 mb-3" 
+                                    id="btnAdicionarAlunoImportar" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalImportarAlunos">
+                                    <i class="bi bi-person-plus"></i> Importar novos alunos
+                                </button>
 
-                                <!-- Placeholder quando não há alunos -->
+                                <ul id="va-lista-alunos" class="list-group">
+                                    </ul>
+
                                 <p id="va-empty" class="text-muted mt-3 d-none">
                                     Esta turma ainda não possui alunos cadastrados.
                                 </p>
-
-                                <!-- Template do item aluno COM botões (para clonar via JS) -->
-                                <div id="templateAlunosModal" class="d-none">
-                                    <li class="list-group-item d-flex justify-content-between align-items-center modelo-aluno-modal">
-                                        <div>
-                                            <strong class="aluno-nome"></strong><br>
-                                            <small class="text-muted aluno-matricula"></small>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-sm btn-warning btn-editar-aluno" data-bs-toggle="modal" data-bs-target="#modalEditarAluno" aria-label="Editar aluno">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger btn-excluir-aluno" aria-label="Excluir aluno">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </li>
-                                </div>
                             </div>
+
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                             </div>
@@ -313,7 +225,33 @@
                     </div>
                 </div>
 
-               <!-- Modal para importar alunos por CSV (já existente, com pequeno ajuste para integração) -->
+                <div class="modal fade" id="modalAdicionarAlunoManual" tabindex="-1" aria-labelledby="modalAdicionarAlunoManualLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-md">
+                        <div class="modal-content shadow">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalAdicionarAlunoManualLabel">Adicionar Aluno Manualmente</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-muted">Preencha os dados do novo aluno.</p>
+                                <form id="formAdicionarAlunoManual">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold" for="manualAlunoId">Identificador (RA/Matrícula)</label>
+                                        <input type="text" class="form-control" id="manualAlunoId" placeholder="Ex: 123456" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold" for="manualAlunoNome">Nome Completo</label>
+                                        <input type="text" class="form-control" id="manualAlunoNome" placeholder="Ex: João da Silva" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="salvarAlunoManual">
+                                        Adicionar Aluno
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="modal fade" id="modalImportarAlunos" tabindex="-1" aria-labelledby="modalImportarAlunosLabel" aria-hidden="true">
                     <div class="modal-dialog modal-md modal-dialog-centered">
                         <div class="modal-content shadow">
@@ -322,26 +260,18 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
                             <div class="modal-body">
-                                <!-- Explicação de como funciona a importação -->
                                 <p class="fw-semibold">Como funciona a importação:</p>
                                 <ul class="text-muted small">
-                                    <li><strong>Atenção:</strong> Não poderão existir dois estudantes com o mesmo identificador (RA, Matrícula, ID — chame como quiser).  
-                                        Caso isso aconteça, os dados que já existem no NotaDez **sempre serão mantidos** e não serão sobrescritos.
-                                    </li>
-                                    <li>
-                                        Somente as <strong>duas primeiras colunas</strong> do arquivo CSV serão utilizadas:
-                                        <br>• Coluna 1 → Identificador do aluno  
-                                        <br>• Coluna 2 → Nome completo do estudante
-                                    </li>
+                                    <li><strong>Atenção:</strong> Não poderão existir dois estudantes com o mesmo identificador (RA, Matrícula, ID — chame como quiser). Caso isso aconteça, os dados que já existem no NotaDez **sempre serão mantidos** e não serão sobrescritos. </li>
+                                    <li> Somente as <strong>duas primeiras colunas</strong> do arquivo CSV serão utilizadas: <br>• Coluna 1 → Identificador do aluno <br>• Coluna 2 → Nome completo do estudante </li>
                                 </ul>
-                                <!-- Formulário para upload do arquivo CSV -->
                                 <form id="formImportarAlunos">
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold" for="inputCsvAlunos">Selecione um arquivo CSV</label>
                                         <input class="form-control" type="file" id="inputCsvAlunos" accept=".csv" required>
                                     </div>
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        Importar Alunos
+                                    <button type="submit" class="btn btn-primary w-100" id="salvarImportacao"> 
+                                        Importar Alunos 
                                     </button>
                                 </form>
                             </div>
@@ -349,7 +279,6 @@
                     </div>
                 </div>
 
-                <!-- Modal para editar aluno (já existente, com ajustes para integração) -->
                 <div class="modal fade" id="modalEditarAluno" tabindex="-1" aria-labelledby="modalEditarAlunoLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-md">
                         <div class="modal-content shadow">
@@ -358,129 +287,31 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
                             <div class="modal-body">
-                                <!-- Formulário para editar os dados do aluno -->
                                 <form id="formEditarAluno">
-                                    <!-- Campo para o identificador do aluno -->
                                     <div class="mb-3">
-                                        <label for="editarAlunoId" class="form-label fw-semibold">Identificador (RA/Matrícula/ID)</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                                            <input type="text" class="form-control" id="editarAlunoId" required>
-                                        </div>
+                                        <label class="form-label fw-semibold" for="editarAlunoId">Identificador (RA/Matrícula)</label>
+                                        <input type="text" class="form-control" id="editarAlunoId" placeholder="Ex: 123456" required/>
                                     </div>
-                                    <!-- Campo para o nome completo do aluno -->
                                     <div class="mb-3">
-                                        <label for="editarAlunoNome" class="form-label fw-semibold">Nome completo</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                            <input type="text" class="form-control" id="editarAlunoNome" required>
-                                        </div>
+                                        <label class="form-label fw-semibold" for="editarAlunoNome">Nome Completo</label>
+                                        <input type="text" class="form-control" id="editarAlunoNome" placeholder="Ex: João da Silva" required/>
                                     </div>
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        Salvar Alterações
-                                    </button>
+                                    <button id="btnSalvarEdicaoAluno" class="btn btn-primary w-100" type="submit">Salvar Alterações</button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Modal para visualizar disciplinas da turma -->
-                <div class="modal fade" id="modalVerDisciplinas" tabindex="-1" aria-labelledby="modalVerDisciplinasLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-scrollable modal-md">
-                        <!-- Diálogo modal com rolagem para muitas disciplinas -->
-                        <div class="modal-content">
+                <div class="modal fade" id="modalEditarTurma" tabindex="-1" aria-labelledby="modalEditarTurmaLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content shadow">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="modalVerDisciplinasLabel">Disciplinas da turma</h5>
+                                <h1 class="modal-title fs-5" id="modalEditarTurmaLabel">Editar Turma</h1>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
                             <div class="modal-body">
-                                <!-- Exibição do nome da turma -->
-                                <p class="mb-2"><strong>Turma:</strong> <span id="vd-turma-nome"></span></p>
-                                <!-- Lista de disciplinas associadas à turma -->
-                                <ul id="vd-lista-disciplinas" class="list-group">
-                                    <!-- JS irá inserir <li> das disciplinas aqui -->
-                                </ul>
-                                <!-- Mensagem quando não há disciplinas -->
-                                <p id="vd-empty" class="text-muted mt-3 d-none">Esta turma ainda não possui disciplinas associadas.</p>
-
-                                <!-- Modelo de disciplina no modal (será clonado via JS) -->
-                                <ul id="listaDisciplinasModal" class="list-group d-none">
-                                    <li class="list-group-item d-flex justify-content-between align-items-center modelo-disciplina-modal d-none">
-                                        <span class="disciplina-nome"></span>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Modal de confirmação de exclusão -->
-                <div class="modal fade" id="modalConfirmarExclusao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-
-                        <!-- Container principal do modal. -->
-                        <div class="modal-content">
-
-                            <!-- Cabeçalho com título e botão de fechar. -->
-                            <div class="modal-header">
-                                <h1 class="modal-title fs-5" id="modalConfirmarExclusaoLabel">Confirmação de exclusão</h1>
-
-                                <!-- Botão padrão do Bootstrap para fechar modais. -->
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-
-                            <!-- Corpo do modal com conteúdo principal. -->
-                            <div class="modal-body">
-                                <p>Certeza que deseja excluir essa turma?</p>
-
-                                <!-- Classe para radio buttons estilizados. -->
-                                <div class="form-check">
-
-                                    <!-- Botão de opção para seleção única. -->
-                                    <!-- Agrupa os radios para seleção mútua. -->
-                                    <input class="form-check-input" type="radio" name="confirmacaoExclusao" id="radioSim" value="sim">
-                                    <label class="form-check-label" for="radioSim">
-                                        Sim
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="confirmacaoExclusao" id="radioNao" value="nao" checked>
-                                    <!-- Pré-seleciona "Não" por padrão. -->
-                                    <label class="form-check-label" for="radioNao">
-                                        Não
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Rodapé do modal com botões de ação. -->
-                            <div class="modal-footer">
-
-                                <!-- Botão cinza para cancelar/fechar. -->
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-
-                                <!-- Botão vermelho para ação destrutiva (exclusão). -->
-                                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Excluir</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal para editar turma -->
-                <div class="modal fade" id="modalEditarTurma" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalEditarTurmaLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h1 class="modal-title fs-5" id="modalEditarTurmaLabel">Editar turma</h1>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-
-                                <!-- Formulário para edição, com ID para manipulação via JS. -->
+                                <p class="text-start">Digite o novo nome da turma.</p>
                                 <form id="formEditarTurma">
                                     <div class="mb-3 text-start">
                                         <label for="inputNovaTurmaEditar" class="form-label">Digite o novo nome da turma</label>
@@ -495,15 +326,47 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="modal fade" id="modalConfirmarExclusao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalConfirmarExclusaoLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="modalConfirmarExclusaoLabel">Confirmação de exclusão</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Certeza que deseja excluir essa turma?</p>
+                                <div class="form-check">
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <template id="templateAlunosModal">
+                    <li class="list-group-item d-flex justify-content-between align-items-center modelo-aluno-modal">
+                        <div>
+                            <strong class="aluno-nome"></strong><br>
+                            <small class="text-muted aluno-matricula"></small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-warning btn-editar-aluno" data-bs-toggle="modal" data-bs-target="#modalEditarAluno" aria-label="Editar aluno">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-excluir-aluno" aria-label="Excluir aluno">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </li>
+                </template>
+
             </div>
         </main>
 
-        <!-- Rodapé da página. -->
         <footer id="footer" class="container-fluid px-lg-5 text-center py-2 mt-auto bg-light border-top">
             <small>NotaDez - 2025 — Criado para facilitar a vida dos docentes</small>
         </footer>
 
-        <!-- Importa o JS do Bootstrap (necessário para o menu offcanvas e componentes interativos) -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
         <script src="/scripts/turmas.js"></script>
     </body>

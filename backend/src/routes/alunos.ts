@@ -1,325 +1,354 @@
-// autor: Cadu Spadari
-// Importa o Express (biblioteca para criar servidor web)
-import express from 'express';
-// Importa a conexão do banco de dados
+// Autor Geral: Cadu Spadari - Autor Código BD: Felipe N. C. Moussa
+
+// Express & BD
+import { Router, Request, Response } from 'express';
 import db from '../database';
+const router = Router();
 
-// Cria um roteador do Express para agrupar as rotas de alunos
-const router = express.Router();
+// Listar Alunos (GET)
+router.get('/', (_req: Request, res: Response) => {
+  const sql = `
+    SELECT
+      id_aluno AS id,
+      matricula AS identificador,
+      nome_completo AS nome
+    FROM ALUNO
+    ORDER BY nome_completo ASC
+  `;
 
-// Rota GET /api/alunos - Lista todos os alunos
-router.get('/', function(req: any, res: any) {
-  // Query SQL para buscar todos os alunos ordenados por nome
-  const sql = 'SELECT * FROM alunos ORDER BY nome ASC';
-  
-  // Executa a query no banco de dados
-  db.all(sql, [], function(err: any, rows: any) {
-    // Se houver erro, retorna erro 500
+  db.all(sql, [], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    
-    // Retorna a lista de alunos
     return res.json(rows);
   });
 });
 
-// Rota GET /api/alunos/:id - Busca um aluno específico por ID
-router.get('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL
-  const id = req.params.id;
+// Buscar Aluno (GET)
+router.get('/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  // Query SQL para buscar o aluno pelo ID
-  const sql = 'SELECT * FROM alunos WHERE id = ?';
-  
-  // Executa a query no banco de dados
-  db.get(sql, [id], function(err: any, row: any) {
-    // Se houver erro, retorna erro 500
+  const sql = `
+    SELECT
+      id_aluno AS id,
+      matricula AS identificador,
+      nome_completo AS nome
+    FROM ALUNO
+    WHERE id_aluno = ?
+  `;
+
+  db.get(sql, [id], (err, row: any) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-
-    // Se não encontrar o aluno, retorna erro 404
     if (!row) {
       return res.status(404).json({ error: 'Aluno não encontrado' });
     }
-
-    // Retorna os dados do aluno
     return res.json(row);
   });
 });
 
-// Rota POST /api/alunos - Cria um novo aluno
-router.post('/', function(req: any, res: any) {
-  // Extrai os dados do corpo da requisição
-  const identificador = req.body.identificador;
-  const nome = req.body.nome;
+router.post('/', (req: Request, res: Response) => {
+  // ATENÇÃO: Adicionado 'turma_id' para uso na matrícula
+  const { identificador, nome, turma_id } = req.body; 
 
-  // Valida se os campos obrigatórios foram preenchidos
-  if (!identificador || !nome) {
-    return res.status(400).json({ 
-      error: 'Identificador e nome do aluno são obrigatórios' 
-    });
+  // Validação: 'turma_id' é necessário para a matrícula
+  if (!identificador || !nome || !turma_id) {
+    return res.status(400).json({ error: 'Campos identificador, nome e turma_id são obrigatórios.' });
   }
 
-  // Query SQL para inserir o novo aluno
-  const sql = 'INSERT INTO alunos (identificador, nome) VALUES (?, ?)';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [identificador, nome], function (err: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      // Verifica se o erro é de identificador duplicado
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return res.status(409).json({ error: 'Identificador já cadastrado' });
-      }
-      return res.status(500).json({ error: err.message });
+  const checkSql = `SELECT 1 FROM ALUNO WHERE matricula = ? LIMIT 1`;
+  db.get(checkSql, [identificador], (checkErr, existing) => {
+    if (checkErr) {
+      return res.status(500).json({ error: checkErr.message });
     }
-    
-    // Retorna os dados do aluno criado
-    return res.status(201).json({ 
-      id: this.lastID, 
-      identificador,
-      nome
+    if (existing) {
+      return res.status(409).json({ error: 'Identificador já cadastrado' });
+    }
+
+    db.serialize(() => {
+      // 1. Inserir na tabela ALUNO
+      const insertAlunoSql = `INSERT INTO ALUNO (matricula, nome_completo) VALUES (?, ?)`;
+      db.run(insertAlunoSql, [identificador, nome], function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Erro ao inserir aluno: ' + err.message });
+        }
+  
+        const alunoId = this.lastID; // ID do aluno recém-criado
+  
+        // 2. Inserir na tabela MATRICULA_TURMA
+        const insertMatriculaSql = 'INSERT INTO MATRICULA_TURMA (fk_turma_id_turma, fk_aluno_id_aluno) VALUES (?, ?)';
+        db.run(insertMatriculaSql, [turma_id, alunoId], (errMatricula: any) => {
+          if (errMatricula) {
+            // Em caso de erro na matrícula, o ideal seria reverter a inserção do ALUNO (necessita de transação, mas simplificaremos)
+            console.error("Erro ao matricular aluno:", errMatricula.message);
+            return res.status(500).json({ error: 'Aluno criado, mas erro ao matricular: ' + errMatricula.message });
+          }
+          
+          // Sucesso: Aluno criado E matriculado.
+          res.status(201).json({ id: alunoId, identificador, nome, message: 'Aluno cadastrado e matriculado com sucesso.' });
+        });
+      });
     });
   });
 });
 
-// Rota POST /api/alunos/importar - Importa múltiplos alunos de uma vez (para CSV)
-router.post('/importar', function(req: any, res: any) {
-  // Extrai a lista de alunos do corpo da requisição
-  const alunos = req.body.alunos;
-  const turmaId = req.body.turma_id;
+// Importa CSV (POST)
+router.post('/importar', (req: Request, res: Response) => {
+  const { alunos, turma_id } = req.body ?? {};
 
-  // Valida se a lista de alunos foi fornecida
   if (!alunos || !Array.isArray(alunos) || alunos.length === 0) {
-    return res.status(400).json({ 
-      error: 'Lista de alunos é obrigatória' 
+    return res.status(400).json({
+      error: 'Lista de alunos é obrigatória'
     });
   }
 
-  var processados = 0;
-  var sucessos = 0;
-  var erros: string[] = [];
+  const sqlAlunoCheck = `SELECT id_aluno FROM ALUNO WHERE matricula = ? LIMIT 1`;
+  const sqlAlunoInsert = `INSERT INTO ALUNO (matricula, nome_completo) VALUES (?, ?)`;
 
-  // Processa cada aluno da lista
-  function processarAluno(index: number) {
-    if (index >= alunos.length) {
-      // Todos os alunos foram processados
-      if (erros.length > 0) {
-        return res.status(500).json({ 
-          error: 'Alguns alunos não puderam ser importados',
-          sucessos: sucessos,
-          erros: erros.length,
-          detalhes: erros
+  const sqlMatriculaTurma = `
+    INSERT OR IGNORE INTO MATRICULA_TURMA (fk_turma_id_turma, fk_aluno_id_aluno)
+    VALUES (?, (SELECT id_aluno FROM ALUNO WHERE matricula = ?))
+  `;
+
+  let processados = 0;
+  let erros: string[] = [];
+
+  alunos.forEach((aluno: { identificador: string; nome: string }) => {
+    if (!aluno.identificador || !aluno.nome) {
+      erros.push(`Aluno inválido: ${JSON.stringify(aluno)}`);
+      processados++;
+      if (processados === alunos.length) {
+        if (erros.length > 0) {
+          return res.status(400).json({ error: 'Alguns alunos são inválidos', detalhes: erros });
+        }
+        return res.status(201).json({
+          message: `${alunos.length} aluno(s) importado(s) com sucesso`,
+          total: alunos.length
         });
       }
-      return res.status(201).json({ 
-        message: sucessos + ' aluno(s) importado(s) com sucesso',
-        total: sucessos
-      });
-    }
-
-    var aluno = alunos[index];
-    
-    // Valida se o aluno tem os campos necessários
-    if (!aluno.identificador || !aluno.nome) {
-      erros.push('Aluno inválido na linha ' + (index + 1) + ': identificador ou nome faltando');
-      processados++;
-      processarAluno(index + 1);
       return;
     }
 
-    // Insere o aluno (ou ignora se já existir)
-    var sqlAluno = 'INSERT OR IGNORE INTO alunos (identificador, nome) VALUES (?, ?)';
-    db.run(sqlAluno, [aluno.identificador, aluno.nome], function(errAluno: any) {
-      if (errAluno) {
-        erros.push('Erro ao inserir aluno ' + aluno.identificador + ': ' + errAluno.message);
+    db.get(sqlAlunoCheck, [aluno.identificador], (checkErr, row: any) => {
+      if (checkErr) {
+        erros.push(`Erro ao verificar aluno ${aluno.identificador}: ${checkErr.message}`);
         processados++;
-        processarAluno(index + 1);
+        if (processados === alunos.length) {
+          if (erros.length > 0) {
+            return res.status(500).json({ error: 'Erros ao importar alunos', detalhes: erros });
+          }
+          return res.status(201).json({
+            message: `${alunos.length} aluno(s) importado(s) com sucesso`,
+            total: alunos.length
+          });
+        }
         return;
       }
 
-      // Se houver turma_id, associa o aluno à turma
-      if (turmaId) {
-        // Primeiro busca o ID do aluno pelo identificador
-        db.get('SELECT id FROM alunos WHERE identificador = ?', [aluno.identificador], function(errGet: any, row: any) {
-          if (errGet || !row) {
-            erros.push('Erro ao buscar aluno ' + aluno.identificador);
-            processados++;
-            processarAluno(index + 1);
-            return;
-          }
-
-          // Associa o aluno à turma
-          var sqlTurmaAluno = 'INSERT OR IGNORE INTO turma_alunos (turma_id, aluno_id) VALUES (?, ?)';
-          db.run(sqlTurmaAluno, [turmaId, row.id], function(errTurma: any) {
-            if (errTurma) {
-              erros.push('Erro ao associar aluno ' + aluno.identificador + ' à turma: ' + errTurma.message);
-            } else {
-              sucessos++;
+      const continueAfterInsert = () => {
+        if (turma_id) {
+          db.run(sqlMatriculaTurma, [turma_id, aluno.identificador], function (err) {
+            if (err) {
+              erros.push(`Erro ao associar aluno ${aluno.identificador} à turma: ${err.message}`);
             }
             processados++;
-            processarAluno(index + 1);
+            if (processados === alunos.length) {
+              if (erros.length > 0) {
+                return res.status(500).json({ error: 'Erros ao importar alunos', detalhes: erros });
+              }
+              return res.status(201).json({
+                message: `${alunos.length} aluno(s) importado(s) com sucesso`,
+                total: alunos.length
+              });
+            }
           });
-        });
+        } else {
+          processados++;
+          if (processados === alunos.length) {
+            if (erros.length > 0) {
+              return res.status(500).json({ error: 'Erros ao importar alunos', detalhes: erros });
+            }
+            return res.status(201).json({
+              message: `${alunos.length} aluno(s) importado(s) com sucesso`,
+              total: alunos.length
+            });
+          }
+        }
+      };
+
+      if (row && row.id_aluno) {
+        continueAfterInsert();
       } else {
-        sucessos++;
-        processados++;
-        processarAluno(index + 1);
+        db.run(sqlAlunoInsert, [aluno.identificador, aluno.nome], function (insertErr) {
+          if (insertErr) {
+            if (insertErr.message.includes('UNIQUE constraint failed')) {
+            } else {
+              erros.push(`Erro ao inserir aluno ${aluno.identificador}: ${insertErr.message}`);
+            }
+          }
+          continueAfterInsert();
+        });
       }
     });
-  }
-
-  // Inicia o processamento
-  processarAluno(0);
+  });
 });
 
-// Rota POST /api/alunos/:turma_id/adicionar - Adiciona um aluno a uma turma
-router.post('/:turma_id/adicionar', function(req: any, res: any) {
-  // Extrai o ID da turma da URL e os dados do corpo da requisição
-  const turmaId = req.params.turma_id;
-  const alunoId = req.body.aluno_id;
+// Adicionar à Turma (POST)
+router.post('/:turma_id/adicionar', (req: Request, res: Response) => {
+  const { turma_id } = req.params;
+  const { aluno_id } = req.body ?? {};
 
-  // Valida se o ID do aluno foi fornecido
-  if (!alunoId) {
+  if (!aluno_id) {
     return res.status(400).json({ error: 'ID do aluno é obrigatório' });
   }
 
-  // Query SQL para associar o aluno à turma
-  const sql = 'INSERT INTO turma_alunos (turma_id, aluno_id) VALUES (?, ?)';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [turmaId, alunoId], function (err: any) {
-    // Se houver erro, retorna erro 500
+  const sql = `
+    INSERT INTO MATRICULA_TURMA (fk_turma_id_turma, fk_aluno_id_aluno)
+    VALUES (?, ?)
+  `;
+
+  db.run(sql, [turma_id, aluno_id], function (err) {
     if (err) {
-      // Verifica se o erro é de associação duplicada
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(409).json({ error: 'Aluno já está nesta turma' });
       }
-      // Verifica se o erro é de turma ou aluno não encontrado
       if (err.message.includes('FOREIGN KEY constraint failed')) {
         return res.status(404).json({ error: 'Turma ou aluno não encontrado' });
       }
       return res.status(500).json({ error: err.message });
     }
-    
-    // Retorna sucesso
-    return res.status(201).json({ 
+
+    return res.status(201).json({
       message: 'Aluno adicionado à turma com sucesso',
-      turma_id: Number(turmaId),
-      aluno_id: Number(alunoId)
+      turma_id: Number(turma_id),
+      aluno_id: Number(aluno_id)
     });
   });
 });
 
-// Rota PUT /api/alunos/:id - Atualiza um aluno existente
-router.put('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL e os dados do corpo da requisição
-  const id = req.params.id;
-  const identificador = req.body.identificador;
-  const nome = req.body.nome;
+// Atualiza Aluno (PUT)
+router.put('/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { identificador, nome } = req.body ?? {};
 
-  // Valida se pelo menos um campo foi fornecido
   if (!identificador && !nome) {
     return res.status(400).json({ error: 'Pelo menos um campo (identificador ou nome) deve ser fornecido' });
   }
 
-  // Monta a query dinamicamente baseado nos campos fornecidos
   const updates: string[] = [];
   const values: any[] = [];
 
   if (identificador) {
-    updates.push('identificador = ?');
+    updates.push('matricula = ?');
     values.push(identificador);
   }
 
   if (nome) {
-    updates.push('nome = ?');
+    updates.push('nome_completo = ?');
     values.push(nome);
   }
 
   values.push(id);
 
-  // Query SQL para atualizar o aluno
-  const sql = `UPDATE alunos SET ${updates.join(', ')} WHERE id = ?`;
-  
-  // Executa a query no banco de dados
-  db.run(sql, values, function (err: any) {
-    // Se houver erro, retorna erro 500
+  const sql = `UPDATE ALUNO SET ${updates.join(', ')} WHERE id_aluno = ?`;
+
+  db.run(sql, values, function (err) {
     if (err) {
-      // Verifica se o erro é de identificador duplicado
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(409).json({ error: 'Identificador já cadastrado' });
       }
       return res.status(500).json({ error: err.message });
     }
 
-    // Se nenhuma linha foi afetada, o aluno não existe
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Aluno não encontrado' });
     }
-    
-    // Retorna sucesso
-    return res.json({ 
-      id: Number(id), 
+
+    return res.json({
+      id: Number(id),
       identificador: identificador || undefined,
       nome: nome || undefined
     });
   });
 });
 
-// Rota DELETE /api/alunos/:id - Exclui um aluno
-router.delete('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL
-  const id = req.params.id;
+// Exclui Aluno (DELETE)
+// Exclui Aluno (DELETE) - CORRIGIDO PARA LIMPAR DEPENDÊNCIAS
+router.delete('/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  // Query SQL para excluir o aluno (as associações serão excluídas automaticamente por CASCADE)
-  const sql = 'DELETE FROM alunos WHERE id = ?';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [id], function (err: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  db.serialize(() => {
+    // Inicia a transação
+    db.run('BEGIN TRANSACTION;');
 
-    // Se nenhuma linha foi afetada, o aluno não existe
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Aluno não encontrado' });
-    }
-    
-    // Retorna sucesso
-    return res.json({ message: 'Aluno excluído com sucesso' });
+    // 1. Deleta registros dependentes em REGISTRO_NOTA
+    const sqlDeleteNotas = 'DELETE FROM REGISTRO_NOTA WHERE fk_aluno_id_aluno = ?';
+    db.run(sqlDeleteNotas, [id], (err) => {
+      if (err) {
+        db.run('ROLLBACK;'); // Reverte tudo
+        console.error("Erro ao deletar REGISTRO_NOTA:", err.message);
+        return res.status(500).json({ error: 'Erro ao deletar notas do aluno.' });
+      }
+
+      // 2. Deleta registros dependentes em MATRICULA_TURMA
+      const sqlDeleteMatriculas = 'DELETE FROM MATRICULA_TURMA WHERE fk_aluno_id_aluno = ?';
+      db.run(sqlDeleteMatriculas, [id], (errMatricula) => {
+        if (errMatricula) {
+          db.run('ROLLBACK;'); // Reverte tudo
+          console.error("Erro ao deletar MATRICULA_TURMA:", errMatricula.message);
+          return res.status(500).json({ error: 'Erro ao deletar matrículas do aluno.' });
+        }
+
+        // 3. Deleta o ALUNO
+        const sqlDeleteAluno = 'DELETE FROM ALUNO WHERE id_aluno = ?';
+        db.run(sqlDeleteAluno, [id], function (errAluno) {
+          if (errAluno) {
+            db.run('ROLLBACK;'); // Reverte tudo
+            console.error("Erro ao deletar ALUNO:", errAluno.message);
+            return res.status(500).json({ error: 'Erro ao deletar aluno do sistema.' });
+          }
+
+          if (this.changes === 0) {
+            db.run('ROLLBACK;');
+            return res.status(404).json({ error: 'Aluno não encontrado.' });
+          }
+
+          // Confirma a transação
+          db.run('COMMIT;', (errCommit) => {
+            if (errCommit) {
+              console.error("Erro ao fazer COMMIT:", errCommit.message);
+              return res.status(500).json({ error: 'Erro ao finalizar a exclusão do aluno.' });
+            }
+            return res.json({ message: 'Aluno excluído do sistema com sucesso' });
+          });
+        });
+      });
+    });
   });
 });
 
-// Rota DELETE /api/alunos/:turma_id/remover/:aluno_id - Remove um aluno de uma turma
-router.delete('/:turma_id/remover/:aluno_id', function(req: any, res: any) {
-  // Extrai os IDs da URL
-  const turmaId = req.params.turma_id;
-  const alunoId = req.params.aluno_id;
+// Remove da Turma (DELETE)
+router.delete('/:turma_id/remover/:aluno_id', (req: Request, res: Response) => {
+  const { turma_id, aluno_id } = req.params;
 
-  // Query SQL para remover a associação entre aluno e turma
-  const sql = 'DELETE FROM turma_alunos WHERE turma_id = ? AND aluno_id = ?';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [turmaId, alunoId], function (err: any) {
-    // Se houver erro, retorna erro 500
+  const sql = `
+    DELETE FROM MATRICULA_TURMA
+    WHERE fk_turma_id_turma = ? AND fk_aluno_id_aluno = ?
+  `;
+
+  db.run(sql, [turma_id, aluno_id], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se nenhuma linha foi afetada, a associação não existe
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Aluno não está nesta turma' });
     }
-    
-    // Retorna sucesso
+
     return res.json({ message: 'Aluno removido da turma com sucesso' });
   });
 });
 
-// Exporta o roteador para ser usado no servidor principal
+// Exportar Router
 export default router;
-

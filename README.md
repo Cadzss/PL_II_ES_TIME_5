@@ -70,4 +70,3 @@ Fornecer uma ferramenta web intuitiva e funcional para auxiliar docentes no cont
 Este projeto foi desenvolvido exclusivamente para fins acadêmicos no contexto do Projeto Integrador II da PUC-Campinas.
 
 ---
-

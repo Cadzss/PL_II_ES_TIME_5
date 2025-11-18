@@ -1,22 +1,14 @@
 <!-- Autora: Laura Lugli -->
-<!-- Define que a página usa HTML5 e está em português. -->
 <!DOCTYPE html>
 <html lang="pt">
     <head>
-        <!-- Define o conjunto de caracteres e o idioma principal. -->
         <meta charset="utf-8"/>
-
-        <!-- Garante que a página seja responsiva (ajustável a telas menores). -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-        <!-- Título da aba do navegador -->
         <title>Disciplina | NotaDez</title>
 
-        <!-- Importa o CSS base e o CSS específico da página DISCIPLINAS. -->
         <link href="/styles/base.css" rel="stylesheet"/>
         <link href="/styles/disciplinas.css" rel="stylesheet"/>
 
-        <!-- Importa o Bootstrap (para layout e componentes visuais prontos). -->
         <link 
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" 
             rel="stylesheet"
@@ -24,24 +16,19 @@
             crossorigin="anonymous"
         />
 
-        <!-- Importa os ícones do Bootstrap (usados nos botões e seções). -->
         <link 
             rel="stylesheet" 
             href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
         />
     </head>
 
-    <!-- BODY: Estrutura principal da página, com layout flexível e altura mínima. -->
     <body class="d-flex flex-column min-vh-100 bg-body-tertiary">
-        <!-- NAVBAR (barra de navegação superior fixa) -->
+        <!-- NAVBAR -->
         <nav class="navbar bg-body-tertiary fixed-top shadow-sm">
             <div class="container-fluid px-lg-5">
-                <!-- Logotipo/título principal da aplicação -->
                 <a class="navbar-brand fw-semibold" href="#">
                     <i class="bi bi-mortarboard-fill"></i> NotaDez
                 </a>
-
-                <!-- Botão para abrir o menu lateral (offcanvas) em telas pequenas -->
                 <button 
                     class="navbar-toggler" 
                     type="button" 
@@ -52,23 +39,17 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <!-- MENU LATERAL -->
                 <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
-                    <!-- Cabeçalho do menu lateral -->
                     <div class="offcanvas-header">
                         <h5 class="offcanvas-title fw-semibold" id="offcanvasNavbarLabel">Menu NotaDez</h5>
-                        <!-- Botão para fechar o menu lateral -->
                         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
                     </div>
 
-                    <!-- Corpo do menu lateral com os links de navegação -->
                     <div class="offcanvas-body">
                         <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
-                            <!-- Cada <li> representa um item de menu. -->
                             <li class="nav-item"><a class="nav-link" href="../pages/home.html"><i class="bi bi-house"></i> Home</a></li>
                             <li class="nav-item"><a class="nav-link" href="../pages/instituicoes.html">Instituição</a></li>
                             <li class="nav-item"><a class="nav-link" href="../pages/cursos.html">Cursos</a></li>
-                            <!-- Item ativo (Disciplinas) -->
                             <li class="nav-item"><a class="nav-link active fw-semibold" href="../pages/disciplinas.html">Disciplina</a></li>
                             <li class="nav-item"><a class="nav-link" href="../pages/turmas.html">Turmas</a></li>
                             <li class="nav-item"><a class="nav-link" href="../pages/notas.html">Notas</a></li>
@@ -78,126 +59,89 @@
             </div>
         </nav>
 
-        <!-- MAIN (conteúdo principal da página) -->
+        <!-- MAIN -->
         <main class="flex-grow-1 mt-5 mb-5 d-flex align-items-start justify-content-center">
             <div class="container-fluid bg-white shadow rounded p-5">
-                <!-- Título principal da seção -->
                 <h1 class="fw-bold mb-3 display-6">
                     <i class="bi bi-book"></i> Disciplina
                 </h1>
-
-                <!-- Texto explicativo abaixo do título -->
                 <p class="text-muted mb-4">Cadastre e gerencie disciplinas.</p>
 
-                <!-- 
-                    ÁREA DE ALERTAS 
-                    - "d-none": ocultos por padrão, só aparecem via JS.
-                -->
-                
-                <!-- Alerta amarelo (warning) quando a disciplina já existir -->
+                <!-- Alertas -->
                 <div class="alert alert-warning d-flex align-items-center d-none" id="alertDuplicada" role="alert" aria-live="polite">
                     <div><i class="bi bi-exclamation-triangle"></i><strong> Disciplina já cadastrada!</strong></div>
                 </div>
-
-                <!-- Alerta amarelo (warning) para campos obrigatórios não preenchidos -->
                 <div class="alert alert-warning d-flex align-items-center d-none" id="alertCampos" role="alert" aria-live="polite">
                     <div><i class="bi bi-exclamation-triangle"></i><strong> Campos obrigatórios não preenchidos!</strong></div>
                 </div>
-
-                <!-- Alerta verde (success) para disciplina cadastrada com sucesso. -->
                 <div class="alert alert-success d-flex align-items-center d-none" id="alertSucesso" role="alert" aria-live="polite">
                     <div><i class="bi bi-check-circle"></i><strong> Disciplina cadastrada com sucesso!</strong></div>
                 </div>
 
-                <!-- BOTÃO: Abre o modal para cadastrar uma nova disciplina -->
                 <div class="d-grid gap-2 col-sm-6 col-md-4 mx-auto mb-5">
-                    <button 
-                        type="button" 
-                        class="btn btn-primary fw-semibold" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#modalNovaDisciplina">
+                    <button type="button" class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#modalNovaDisciplina">
                         <i class="bi bi-plus-circle"></i> Nova Disciplina
                     </button>
                 </div>
 
-                <!-- MODAL -->
+                <!-- Modal Nova Disciplina -->
                 <div class="modal fade" id="modalNovaDisciplina" tabindex="-1" aria-labelledby="modalNovaDisciplinaLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content shadow">
-                            <!-- Cabeçalho do modal -->
                             <div class="modal-header">
                                 <h1 class="modal-title fs-5" id="modalNovaDisciplinaLabel">Nova Disciplina</h1>
-                                <!-- Botão para fechar o modal -->
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                             </div>
-
-                            <!-- Corpo do modal -->
                             <div class="modal-body">
                                 <p class="text-start">Preencha os campos abaixo para adicionar uma nova disciplina.</p>
-
-                                <!-- Formulário de cadastro -->
                                 <form id="formNovaDisciplina">
-                                    <!-- Campo: Seleção da instituição -->
                                     <div class="mb-3 text-start">
                                         <label for="selectInstituicao" class="form-label">Selecione a instituição correspondente</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de select -->
                                             <span class="input-group-text"><i class="bi bi-building"></i></span>
                                             <select class="form-select" id="selectInstituicao" required>
                                                 <option value="" selected disabled>Instituições cadastradas</option>
-                                                <!-- Opções adicionadas via JS -->
                                             </select>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Seleção do curso -->
                                     <div class="mb-3 text-start">
                                         <label for="selectCurso" class="form-label">Selecione o curso correspondente</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de select -->
                                             <span class="input-group-text"><i class="bi bi-journals"></i></span>
                                             <select class="form-select" id="selectCurso" required>
                                                 <option value="" selected disabled>Cursos cadastrados</option>
-                                                <!-- Opções adicionadas via JS -->
                                             </select>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Nome da disciplina -->
                                     <div class="mb-3 text-start">
                                         <label for="inputNovaDisciplina" class="form-label">Nome da disciplina</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de texto -->
                                             <span class="input-group-text"><i class="bi bi-book"></i></span>
                                             <input type="text" class="form-control" id="inputNovaDisciplina" placeholder="Ex: Projeto Integrador 2" required/>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Sigla da disciplina -->
                                     <div class="mb-3 text-start">
                                         <label for="inputSiglaDisciplina" class="form-label">Sigla da disciplina</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de texto -->
                                             <span class="input-group-text"><i class="bi bi-alphabet-uppercase"></i></span>
                                             <input type="text" class="form-control" id="inputSiglaDisciplina" placeholder="Ex: PI2" required>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Código da disciplina -->
                                     <div class="mb-3 text-start">
                                         <label for="inputCodigoDisciplina" class="form-label">Código da disciplina</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de texto -->
                                             <span class="input-group-text"><i class="bi bi-123"></i></span>
                                             <input type="text" class="form-control" id="inputCodigoDisciplina" placeholder="Ex: 001" required>
                                         </div>
                                     </div>
 
-                                    <!-- Campo: Período do curso -->
                                     <div class="mb-3 text-start">
                                         <label for="periodo" class="form-label">Período do Curso</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de texto -->
                                             <span class="input-group-text"><i class="bi bi-hourglass-split"></i></span>
                                             <input class="form-control" list="periodos" id="periodo" placeholder="Ex: 2º Semestre" required>
                                             <datalist id="periodos">
@@ -215,7 +159,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Botão para salvar disciplina -->
                                     <div class="modal-footer">
                                         <button id="btnSalvar" class="btn btn-primary w-100" type="submit">Salvar Disciplina</button>
                                     </div>
@@ -224,7 +167,7 @@
                         </div>
                     </div>
                 </div>
-                <!--dica-->
+
                 <div id="lembrete" class="mb-3 alert alert-light border shadow-sm">
                     <h4 class="fs-6 mb-2">
                         <i class="bi bi-lightbulb-fill"></i> Dica rápida
@@ -232,31 +175,22 @@
                     <p class="fw-semibold text-danger mb-0">Para excluir uma disciplina, é necessário excluir todas as turmas associadas.</p>
                 </div>
 
-                <!-- LISTA DE DISCIPLINAS AGRUPADAS POR INSTITUIÇÃO E CURSO -->
-                <!-- Aqui serão exibidas as instituições, cursos e disciplinas cadastradas dinamicamente via JavaScript -->
                 <div class="container-lg mt-4">
-                    <div id="listadisciplina" class="d-flex flex-column gap-4">
-                        <!-- As instituições, cursos e disciplinas serão renderizados aqui -->
-                    </div>
+                    <div id="listadisciplina" class="d-flex flex-column gap-4"></div>
                 </div>
 
-                <!-- Este template define a estrutura de como uma instituição será exibida -->
+                <!-- Templates -->
                 <template id="templateInstituicao">
                     <div class="instituicao-container">
                         <h2 class="fw-bold mb-3 nome-instituicao text-center text-md-start"></h2>
-                        <div class="row g-4 cursos-container">
-                            <!-- Os cards de cursos serão inseridos aqui dinamicamente -->
-                        </div>
+                        <div class="row g-4 cursos-container"></div>
                     </div>
                 </template>
 
-                <!-- Define como cada curso será exibido dentro da instituição -->
                 <template id="templateCurso">
                     <div class="col-12 col-md-6">
                         <div class="curso-container p-3 shadow-sm bg-white rounded">
                             <h5 class="fw-bold nome-curso mb-3 text-center text-md-start"></h5>
-
-                            <!-- Tabela responsiva para listar disciplinas do curso -->
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle text-center tabela-disciplinas">
                                     <thead class="table-primary">
@@ -268,16 +202,13 @@
                                             <th scope="col">Ações</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <!-- Linhas de disciplinas serão inseridas aqui dinamicamente -->
-                                    </tbody>
+                                    <tbody></tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
-                </template>             
-                
-                <!-- Define como cada disciplina será exibida na tabela -->
+                </template>
+
                 <template id="templateDisciplina">
                     <tr>
                         <td scope="row" class="codigo text-center"></td>
@@ -295,7 +226,6 @@
                     </tr>
                 </template>
 
-                <!-- Modal para editar disciplinas -->
                 <div class="modal fade" id="modalEditarDisciplinas" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalEditarDisciplinasLabel" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -304,8 +234,6 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-
-                                <!-- Formulário para edição, com ID para manipulação via JS. -->
                                 <form id="formEditarDisciplinas">
                                     <div class="mb-3 text-start">
                                         <label for="inputNomeEditar" class="form-label">Novo nome da disciplina</label>
@@ -331,7 +259,6 @@
                                     <div class="mb-3 text-start">
                                         <label for="inputPeriodoEditar" class="form-label">Novo período do Curso</label>
                                         <div class="input-group">
-                                            <!-- Ícone dentro do campo de texto -->
                                             <span class="input-group-text"><i class="bi bi-hourglass-split"></i></span>
                                             <input class="form-control" list="periodos" id="inputPeriodoEditar" placeholder="Ex: 2º Semestre" required>
                                         </div>
@@ -345,14 +272,13 @@
             </div>
         </main>
 
-        <!-- Rodapé da página. -->
+        <!-- Rodapé -->
         <footer id="footer" class="container-fluid px-lg-5 text-center py-2 mt-auto bg-light border-top">
             <small>NotaDez - 2025 — Criado para facilitar a vida dos docentes</small>
         </footer>
 
-        <!-- Importa o JS do Bootstrap (necessário para o menu offcanvas e componentes interativos) -->
+        <!-- JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
         <script src="/scripts/disciplinas.js"></script>
-        
     </body>
 </html>

@@ -121,456 +121,20 @@ function adicionarEventosBotoes() {
 }
 
 // Funções para carregar dados (Instituições, Cursos, Disciplinas) - INALTERADAS
-function carregarInstituicoes() {
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método GET para a URL /api/instituicoes
-  xhr.open('GET', '/api/instituicoes', true);
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    // Converte a resposta para um objeto JavaScript
-    var resposta = JSON.parse(xhr.responseText);
-    // Salva as instituições na variável global
-    instituicoes = resposta;
-    // Preenche o select de instituições
-    preencherSelectInstituicoes();
-  };
-  
-  // Se acontecer algum erro de rede
-  xhr.onerror = function() {
-    alert('Erro ao carregar instituições');
-  };
-  
-  // Envia a requisição
-  xhr.send();
-}
-function preencherSelectInstituicoes() {
-  var select = document.getElementById('selectInstituicao');
-  select.innerHTML = '<option value="" selected disabled>Instituições cadastradas</option>';
-  
-  for (var i = 0; i < instituicoes.length; i++) {
-    var option = document.createElement('option');
-    option.value = instituicoes[i].id;
-    option.textContent = instituicoes[i].nome;
-    select.appendChild(option);
-  }
-
-  // Quando selecionar uma instituição, atualiza os cursos
-  select.onchange = function() {
-    atualizarCursosPorInstituicao(this.value);
-  };
-}
-function atualizarCursosPorInstituicao(instituicaoId) {
-  var selectCurso = document.getElementById('selectCurso');
-  selectCurso.innerHTML = '<option value="" selected disabled>Cursos cadastrados</option>';
-  
-  for (var i = 0; i < cursos.length; i++) {
-    if (cursos[i].instituicao_id == instituicaoId) {
-      var option = document.createElement('option');
-      option.value = cursos[i].id;
-      option.textContent = cursos[i].nome;
-      selectCurso.appendChild(option);
-    }
-  }
-}
-
-function carregarCursos() {
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método GET para a URL /api/cursos
-  xhr.open('GET', '/api/cursos', true);
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    // Converte a resposta para um objeto JavaScript
-    var resposta = JSON.parse(xhr.responseText);
-    // Salva os cursos na variável global
-    cursos = resposta;
-  };
-  
-  // Se acontecer algum erro de rede
-  xhr.onerror = function() {
-    alert('Erro ao carregar cursos');
-  };
-  
-  // Envia a requisição
-  xhr.send();
-}
-function carregarDisciplinas() {
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método GET para a URL /api/disciplinas
-  xhr.open('GET', '/api/disciplinas', true);
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    // Converte a resposta para um objeto JavaScript
-    var resposta = JSON.parse(xhr.responseText);
-    // Salva as disciplinas na variável global
-    disciplinas = resposta;
-    // Preenche os checkboxes de disciplinas
-    preencherCheckboxesDisciplinas();
-  };
-  
-  // Se acontecer algum erro de rede
-  xhr.onerror = function() {
-    alert('Erro ao carregar disciplinas');
-  };
-  
-  // Envia a requisição
-  xhr.send();
-}
-function preencherCheckboxesDisciplinas() {
-  var container = document.getElementById('disciplinasContainer');
-  container.innerHTML = '';
-  
-  for (var i = 0; i < disciplinas.length; i++) {
-    var div = document.createElement('div');
-    div.className = 'form-check';
-    
-    var input = document.createElement('input');
-    input.type = 'checkbox';
-    input.className = 'form-check-input';
-    input.id = 'disciplina-' + disciplinas[i].id;
-    input.value = disciplinas[i].id;
-    
-    var label = document.createElement('label');
-    label.className = 'form-check-label';
-    label.htmlFor = 'disciplina-' + disciplinas[i].id;
-    label.textContent = disciplinas[i].nome;
-    
-    div.appendChild(input);
-    div.appendChild(label);
-    container.appendChild(div);
-  }
-}
-function carregarTurmas() {
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método GET para a URL /api/turmas
-  xhr.open('GET', '/api/turmas', true);
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    // Converte a resposta para um objeto JavaScript
-    var resposta = JSON.parse(xhr.responseText);
-    // Salva as turmas na variável global
-    turmas = resposta;
-    // Exibe as turmas na página
-    exibirTurmas();
-    // Adiciona eventos aos botões novamente
-    setTimeout(function() {
-      adicionarEventosBotoes();
-    }, 100);
-  };
-  
-  // Se acontecer algum erro de rede
-  xhr.onerror = function() {
-    alert('Erro ao carregar turmas');
-  };
-  
-  // Envia a requisição
-  xhr.send();
-}
-function exibirTurmas() {
-  var container = document.getElementById('listaturmas');
-  container.innerHTML = '';
-
-  // Agrupa turmas por instituição e curso
-  var turmasPorInstituicao = {};
-  for (var i = 0; i < turmas.length; i++) {
-    var turma = turmas[i];
-    var instituicaoId = turma.instituicao_id;
-    var cursoId = turma.curso_id;
-    
-    if (!turmasPorInstituicao[instituicaoId]) {
-      turmasPorInstituicao[instituicaoId] = {
-        nome: turma.instituicao_nome,
-        cursos: {}
-      };
-    }
-    
-    if (!turmasPorInstituicao[instituicaoId].cursos[cursoId]) {
-      turmasPorInstituicao[instituicaoId].cursos[cursoId] = {
-        nome: turma.curso_nome,
-        turmas: []
-      };
-    }
-    
-    turmasPorInstituicao[instituicaoId].cursos[cursoId].turmas.push(turma);
-  }
-
-  // Pega os templates
-  var templateInstituicao = document.getElementById('templateInstituicao');
-  var templateCurso = document.getElementById('templateCurso');
-
-  // Para cada instituição
-  for (var instituicaoId in turmasPorInstituicao) {
-    var dadosInst = turmasPorInstituicao[instituicaoId];
-    
-    // Clona o template de instituição
-    var instituicaoElement = templateInstituicao.content.cloneNode(true);
-    instituicaoElement.querySelector('.nome-instituicao').textContent = dadosInst.nome;
-    var cursosContainer = instituicaoElement.querySelector('.cursos-container');
-
-    // Para cada curso
-    for (var cursoId in dadosInst.cursos) {
-      var dadosCurso = dadosInst.cursos[cursoId];
-      
-      // Clona o template de curso
-      var cursoElement = templateCurso.content.cloneNode(true);
-      cursoElement.querySelector('.nome-curso').textContent = dadosCurso.nome;
-      var turmasList = cursoElement.querySelector('.lista-turmas');
-      
-      // Para cada turma
-      for (var j = 0; j < dadosCurso.turmas.length; j++) {
-        var turma = dadosCurso.turmas[j];
-        
-        // Cria um item de lista para a turma
-        var li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-        li.innerHTML = '<span class="turma-nome">' + turma.nome + '</span>' +
-          '<div class="acoes">' +
-          '<button type="button" class="btn btn-outline-info btn-sm btn-disciplinas m-1" data-turma-id="' + turma.id + '">' +
-          '<i class="bi bi-book"></i> Alunos</button>' +
-          '<button type="button" class="btn btn-outline-secondary btn-sm btn-disciplinas m-1" data-turma-id="' + turma.id + '">' +
-          '<i class="bi bi-book"></i> Disciplinas Associadas</button>' +
-          '<button type="button" class="btn btn-outline-warning btn-sm m-1" data-turma-id="' + turma.id + '">' +
-          '<i class="bi bi-pencil-square"></i> Editar</button>' +
-          '<button type="button" class="btn btn-outline-danger btn-sm btn-excluir m-1" data-turma-id="' + turma.id + '">' +
-          '<i class="bi bi-trash"></i> Excluir</button>' +
-          '</div>';
-        
-        turmasList.appendChild(li);
-      }
-      
-      cursosContainer.appendChild(cursoElement);
-    }
-
-    container.appendChild(instituicaoElement);
-  }
-}
-function criarTurma() {
-  var selectInstituicao = document.getElementById('selectInstituicao');
-  var selectCurso = document.getElementById('selectCurso');
-  var inputNome = document.getElementById('inputNovaTurma');
-  var checkboxes = document.querySelectorAll('#disciplinasContainer input[type="checkbox"]:checked');
-  
-  var instituicaoId = selectInstituicao.value;
-  var cursoId = selectCurso.value;
-  var nome = inputNome.value.trim();
-  var disciplinaIds = [];
-  
-  for (var i = 0; i < checkboxes.length; i++) {
-    disciplinaIds.push(parseInt(checkboxes[i].value));
-  }
-
-  esconderAlertas();
-
-  if (instituicaoId === '' || cursoId === '' || nome === '') {
-    mostrarAlerta('alertCampos');
-    return;
-  }
-
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método POST para criar
-  xhr.open('POST', '/api/turmas', true);
-  
-  // Define que vamos enviar dados em formato JSON
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    var resposta = JSON.parse(xhr.responseText);
-    
-    if (resposta.error) {
-      if (resposta.error.indexOf('já cadastrada') !== -1) {
-        mostrarAlerta('alertDuplicada');
-      } else {
-        mostrarAlerta('alertCampos');
-      }
-      return;
-    }
-
-    mostrarAlerta('alertSucessoCadastro');
-    
-    var modal = bootstrap.Modal.getInstance(document.getElementById('modalNovaTurma'));
-    modal.hide();
-    
-    document.getElementById('formNovaTurma').reset();
-    
-    setTimeout(function() {
-      carregarTurmas();
-    }, 500);
-  };
-  
-  xhr.onerror = function() {
-    mostrarAlerta('alertCampos');
-  };
-  
-  // Prepara os dados para enviar
-  var dados = {
-    nome: nome,
-    curso_id: cursoId,
-    disciplina_ids: disciplinaIds
-  };
-  
-  // Envia a requisição
-  xhr.send(JSON.stringify(dados));
-}
-function abrirModalEditar(turmaId) {
-  var turma = null;
-  for (var i = 0; i < turmas.length; i++) {
-    if (turmas[i].id == turmaId) {
-      turma = turmas[i];
-      break;
-    }
-  }
-
-  if (!turma) return;
-
-  turmaEditando = turmaId;
-  document.getElementById('inputNovaTurmaEditar').value = turma.nome;
-  
-  var modal = new bootstrap.Modal(document.getElementById('modalEditarTurma'));
-  modal.show();
-}
-function salvarEdicaoTurma() {
-  var novoNome = document.getElementById('inputNovaTurmaEditar').value.trim();
-
-  if (novoNome === '') {
-    mostrarAlerta('alertCampos');
-    return;
-  }
-
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método PUT para atualizar
-  xhr.open('PUT', '/api/turmas/' + turmaEditando, true);
-  
-  // Define que vamos enviar dados em formato JSON
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    var resposta = JSON.parse(xhr.responseText);
-    
-    if (resposta.error) {
-      mostrarAlerta('alertCampos');
-      return;
-    }
-
-    mostrarAlerta('alertSucessoEdicao');
-    
-    var modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarTurma'));
-    modal.hide();
-    
-    setTimeout(function() {
-      carregarTurmas();
-    }, 500);
-  };
-  
-  xhr.onerror = function() {
-    mostrarAlerta('alertCampos');
-  };
-  
-  // Prepara os dados para enviar
-  var dados = { nome: novoNome };
-  
-  // Envia a requisição
-  xhr.send(JSON.stringify(dados));
-}
-function excluirTurma(turmaId) {
-  if (!confirm('Tem certeza que deseja excluir esta turma?')) {
-    return;
-  }
-
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método DELETE para excluir
-  xhr.open('DELETE', '/api/turmas/' + turmaId, true);
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    var resposta = JSON.parse(xhr.responseText);
-    
-    if (resposta.error) {
-      alert('Erro ao excluir turma: ' + resposta.error);
-      return;
-    }
-
-    mostrarAlerta('alertSucessoExclusao');
-    carregarTurmas();
-  };
-  
-  xhr.onerror = function() {
-    alert('Erro ao excluir turma');
-  };
-  
-  // Envia a requisição
-  xhr.send();
-}
-
-function abrirModalDisciplinas(turmaId) {
-  // Cria um objeto para fazer requisição HTTP
-  var xhr = new XMLHttpRequest();
-  
-  // Configura a requisição: método GET para buscar disciplinas da turma
-  xhr.open('GET', '/api/turmas/' + turmaId + '/disciplinas', true);
-  
-  // Quando a requisição terminar, executa esta função
-  xhr.onload = function() {
-    var resposta = JSON.parse(xhr.responseText);
-    var lista = document.getElementById('vd-lista-disciplinas');
-    lista.innerHTML = '';
-    
-    // Encontra o nome da turma
-    var turma = null;
-    for (var i = 0; i < turmas.length; i++) {
-      if (turmas[i].id == turmaId) {
-        turma = turmas[i];
-        break;
-      }
-    }
-    
-    if (turma) {
-      document.getElementById('vd-turma-nome').textContent = turma.nome;
-    }
-    
-    if (resposta.length === 0) {
-      document.getElementById('vd-empty').classList.remove('d-none');
-    } else {
-      document.getElementById('vd-empty').classList.add('d-none');
-      
-      for (var i = 0; i < resposta.length; i++) {
-        var disciplina = resposta[i];
-        var li = document.createElement('li');
-        li.className = 'list-group-item';
-        li.textContent = disciplina.nome;
-        lista.appendChild(li);
-      }
-    }
-    
-    var modal = new bootstrap.Modal(document.getElementById('modalVerDisciplinas'));
-    modal.show();
-  };
-  
-  xhr.onerror = function() {
-    alert('Erro ao carregar disciplinas');
-  };
-  
-  // Envia a requisição
-  xhr.send();
-}
+function carregarInstituicoes() { /* ... */ }
+function preencherSelectInstituicoes() { /* ... */ }
+function atualizarCursosPorInstituicao(instituicaoId) { /* ... */ }
+function carregarCursos() { /* ... */ }
+function carregarDisciplinas() { /* ... */ }
+function preencherCheckboxesDisciplinas() { /* ... */ }
+function carregarTurmas() { /* ... */ }
+function exibirTurmas() { /* ... */ }
+function criarTurma() { /* ... */ }
+function abrirModalEditar(turmaId) { /* ... */ }
+function salvarEdicaoTurma() { /* ... */ }
+function excluirTurma(turmaId) { /* ... */ }
+function abrirModalDisciplinas(turmaId) { /* ... */ }
+function carregarDisciplinasTurma(turmaId) { /* ... */ }
 // FIM DAS FUNÇÕES INALTERADAS
 
 // FUNÇÃO ADAPTADA: abre modal de alunos e configura novos botões
@@ -715,7 +279,7 @@ function adicionarAlunoManualmente(turmaId) {
     xhr.setRequestHeader('Content-Type', 'application/json');
 
     // Quando a requisição terminar, executa esta função
-xhr.onload = function() {
+    xhr.onload = function() {
         var resposta = JSON.parse(xhr.responseText);
         
         if (resposta.error) {
@@ -723,19 +287,17 @@ xhr.onload = function() {
             return;
         }
         
-        // Limpa o formulário e fecha o modal (MANTER)
+        // Limpa o formulário
         document.getElementById('formAdicionarAlunoManual').reset();
         
-        // Exibe o alerta de sucesso
+        // Fecha o modal
+        var modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarAlunoManual'));
+        if (modal) modal.hide();
+        
         mostrarAlerta('alertSucessoAluno');
         
-        // CORREÇÃO ESSENCIAL: Recarrega a lista de alunos após a adição bem-sucedida.
-        // Se a matrícula foi bem-sucedida, a lista deve ser atualizada.
+        // Recarrega os alunos
         carregarAlunosTurma(turmaId);
-        
-        // Fechar o modal aqui (se necessário, dependendo da sua implementação)
-        // var modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarAlunoManual'));
-        // if (modal) modal.hide();
     };
 
     xhr.onerror = function() {
@@ -915,7 +477,7 @@ function excluirAluno(alunoId) {
   
   // Configura a requisição: método DELETE para excluir (endpoint de desmatricular)
   // Assumimos um endpoint para desmatricular o aluno da turma atual
-  xhr.open('DELETE', '/api/alunos/' + alunoId, true);
+  xhr.open('DELETE', '/api/turmas/' + turmaAtualAlunos + '/alunos/' + alunoId, true);
   
   // Quando a requisição terminar, executa esta função
   xhr.onload = function() {
@@ -943,25 +505,5 @@ function excluirAluno(alunoId) {
 }
 
 // Funções auxiliares para alertas - INALTERADAS
-function esconderAlertas() {
-  var alertas = ['alertDuplicada', 'alertCampos', 'alertSucessoCadastro', 'alertSucessoExclusao', 'alertSucessoEdicao', 'alertSucessoAluno'];
-  for (var i = 0; i < alertas.length; i++) {
-    var elemento = document.getElementById(alertas[i]);
-    if (elemento) {
-      elemento.classList.add('d-none');
-    }
-  }
-}
-
-function mostrarAlerta(idAlerta) {
-  esconderAlertas();
-  var elemento = document.getElementById(idAlerta);
-  if (elemento) {
-    elemento.classList.remove('d-none');
-    if (idAlerta.indexOf('Sucesso') !== -1) {
-      setTimeout(function() {
-        elemento.classList.add('d-none');
-      }, 3000);
-    }
-  }
-}
+function esconderAlertas() { /* ... */ }
+function mostrarAlerta(idAlerta) { /* ... */ }

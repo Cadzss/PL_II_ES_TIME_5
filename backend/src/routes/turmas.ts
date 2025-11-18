@@ -1,282 +1,259 @@
-// autor: Cadu Spadari
-// Importa o Express (biblioteca para criar servidor web)
-import express from 'express';
+// autor: Cadu Spadari (adaptado para novo schema TURMA com fk_disciplina e fk_curso)
+// Importa tipos do Express para requisições e respostas
+import { Router, Request, Response } from 'express';
 // Importa a conexão do banco de dados
 import db from '../database';
 
-// Cria um roteador do Express para agrupar as rotas de turmas
-const router = express.Router();
+const router = Router();
 
-// Rota GET /api/turmas - Lista todas as turmas
-router.get('/', function(req: any, res: any) {
-  // Query SQL para buscar todas as turmas com informações do curso e instituição
+/**
+ * Helper: transforma possíveis strings vazias/nulos em número (ou null)
+ */
+function toNumberOrNull(v: any): number | null {
+  if (v === undefined || v === null) return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+}
+
+/**
+ * GET /api/turmas
+ */
+router.get('/', (_req: Request, res: Response) => {
   const sql = `
-    SELECT 
-      t.id,
-      t.nome,
-      t.curso_id,
-      c.nome as curso_nome,
-      c.instituicao_id,
-      i.nome as instituicao_nome,
-      t.criado_em
-    FROM turmas t
-    INNER JOIN cursos c ON t.curso_id = c.id
-    INNER JOIN instituicoes i ON c.instituicao_id = i.id
-    ORDER BY i.nome, c.nome, t.nome
+    SELECT
+      t.id_turma AS id,
+      t.nome_turma AS nome,
+      d.fk_curso_id_curso AS curso_id,
+      c.nome_curso AS curso_nome,
+      c.fk_instituicao_id_instituicao AS instituicao_id,
+      i.nome_instituicao AS instituicao_nome,
+      NULL AS criado_em
+    FROM TURMA t
+    INNER JOIN DISCIPLINA d ON t.fk_disciplina_id_disciplina = d.id_disciplina
+    INNER JOIN CURSO c ON d.fk_curso_id_curso = c.id_curso
+    INNER JOIN INSTITUICAO i ON c.fk_instituicao_id_instituicao = i.id_instituicao
+    ORDER BY i.nome_instituicao, c.nome_curso, t.nome_turma
   `;
-  
-  // Executa a query no banco de dados
-  db.all(sql, [], function(err: any, rows: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    // Retorna a lista de turmas
+
+  db.all(sql, [], (err: any, rows: any) => {
+    if (err) return res.status(500).json({ error: err.message });
     return res.json(rows);
   });
 });
 
-// Rota GET /api/turmas/:id - Busca uma turma específica por ID
-router.get('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL
-  const id = req.params.id;
+/**
+ * GET /api/turmas/:id
+ */
+router.get('/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  // Query SQL para buscar a turma pelo ID com informações do curso e instituição
   const sql = `
-    SELECT 
-      t.id,
-      t.nome,
-      t.curso_id,
-      c.nome as curso_nome,
-      c.instituicao_id,
-      i.nome as instituicao_nome,
-      t.criado_em
-    FROM turmas t
-    INNER JOIN cursos c ON t.curso_id = c.id
-    INNER JOIN instituicoes i ON c.instituicao_id = i.id
-    WHERE t.id = ?
+    SELECT
+      t.id_turma AS id,
+      t.nome_turma AS nome,
+      d.fk_curso_id_curso AS curso_id,
+      c.nome_curso AS curso_nome,
+      c.fk_instituicao_id_instituicao AS instituicao_id,
+      i.nome_instituicao AS instituicao_nome,
+      NULL AS criado_em
+    FROM TURMA t
+    INNER JOIN DISCIPLINA d ON t.fk_disciplina_id_disciplina = d.id_disciplina
+    INNER JOIN CURSO c ON d.fk_curso_id_curso = c.id_curso
+    INNER JOIN INSTITUICAO i ON c.fk_instituicao_id_instituicao = i.id_instituicao
+    WHERE t.id_turma = ?
   `;
-  
-  // Executa a query no banco de dados
-  db.get(sql, [id], function(err: any, row: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
 
-    // Se não encontrar a turma, retorna erro 404
-    if (!row) {
-      return res.status(404).json({ error: 'Turma não encontrada' });
-    }
-
-    // Retorna os dados da turma
+  db.get(sql, [id], (err: any, row: any) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Turma não encontrada' });
     return res.json(row);
   });
 });
 
-// Rota POST /api/turmas - Cria uma nova turma
-router.post('/', function(req: any, res: any) {
-  // Extrai os dados do corpo da requisição
-  const nome = req.body.nome;
-  const cursoId = req.body.curso_id;
-  const disciplinaIds = req.body.disciplina_ids;
+/**
+ * POST /api/turmas
+ * - aceita payload { nome, curso_id, disciplina_ids }
+ * - tenta usar a primeira disciplina válida que pertença ao curso selecionado
+ * - se não vier disciplina_ids, escolhe a primeira disciplina do curso (fallback)
+ * - se não houver disciplina no curso, retorna erro explicando o motivo
+ */
+router.post('/', (req: Request, res: Response) => {
+  const nomeRaw = req.body?.nome;
+  const cursoIdRaw = req.body?.curso_id;
+  const disciplinaIdsRaw = req.body?.disciplina_ids;
 
-  // Valida se os campos obrigatórios foram preenchidos
-  if (!nome || !cursoId) {
-    return res.status(400).json({ 
-      error: 'Nome da turma e ID do curso são obrigatórios' 
-    });
+  const nome = typeof nomeRaw === 'string' ? nomeRaw.trim() : nomeRaw;
+  const curso_id = toNumberOrNull(cursoIdRaw);
+  const disciplina_ids = Array.isArray(disciplinaIdsRaw)
+    ? disciplinaIdsRaw.map((x: any) => toNumberOrNull(x)).filter((x: any) => x !== null)
+    : [];
+
+  // Valida campos obrigatórios (nome e curso_id)
+  if (!nome || !curso_id) {
+    return res.status(400).json({ error: 'Nome da turma e ID do curso são obrigatórios' });
   }
 
-  // Query SQL para inserir a nova turma
-  const sqlTurma = 'INSERT INTO turmas (nome, curso_id) VALUES (?, ?)';
-  
-  // Executa a query para inserir a turma
-  db.run(sqlTurma, [nome, cursoId], function (err: any) {
-    // Se houver erro, retorna erro
-    if (err) {
-      // Verifica se o erro é de turma duplicada no mesmo curso
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return res.status(409).json({ error: 'Turma já cadastrada neste curso' });
-      }
-      // Verifica se o erro é de curso não encontrado
-      if (err.message.includes('FOREIGN KEY constraint failed')) {
-        return res.status(404).json({ error: 'Curso não encontrado' });
-      }
-      return res.status(500).json({ error: err.message });
-    }
+  // Verifica se o curso existe
+  db.get('SELECT id_curso, nome_curso FROM CURSO WHERE id_curso = ?', [curso_id], (errCurso: any, cursoRow: any) => {
+    if (errCurso) return res.status(500).json({ error: errCurso.message });
+    if (!cursoRow) return res.status(404).json({ error: 'Curso não encontrado' });
 
-    // Salva o ID da turma criada
-    const turmaId = this.lastID;
-
-    // Se houver disciplinas para associar
-    if (disciplinaIds && Array.isArray(disciplinaIds) && disciplinaIds.length > 0) {
-      // Processa cada disciplina sequencialmente
-      var processadas = 0;
-      var erros: string[] = [];
-
-      function processarDisciplina(index: number) {
-        if (index >= disciplinaIds.length) {
-          // Todas as disciplinas foram processadas
-          if (erros.length > 0) {
-            return res.status(207).json({ 
-              id: turmaId, 
-              nome: nome,
-              curso_id: Number(cursoId),
-              disciplina_ids: disciplinaIds,
-              avisos: erros
-            });
+    // Função inserção utilizando disciplina definitiva
+    const inserirTurma = (disciplinaIdToUse: number) => {
+      const sqlTurma = `
+        INSERT INTO TURMA (nome_turma, fk_disciplina_id_disciplina, fk_curso_id_curso)
+        VALUES (?, ?, ?)
+      `;
+      db.run(sqlTurma, [nome, disciplinaIdToUse, curso_id], function (errInsert: any) {
+        if (errInsert) {
+          if (errInsert.message.includes('UNIQUE constraint failed')) {
+            return res.status(409).json({ error: 'Turma já cadastrada neste curso/disciplina' });
           }
-          // Retorna sucesso
-          return res.status(201).json({ 
-            id: turmaId, 
-            nome: nome,
-            curso_id: Number(cursoId),
-            disciplina_ids: disciplinaIds
+          if (errInsert.message.includes('FOREIGN KEY constraint failed')) {
+            return res.status(404).json({ error: 'Disciplina ou curso não encontrado' });
+          }
+          return res.status(500).json({ error: errInsert.message });
+        }
+
+        const turmaId = this.lastID;
+
+        if (disciplina_ids.length > 1) {
+          return res.status(201).json({
+            id: turmaId,
+            nome,
+            curso_id: Number(curso_id),
+            disciplina_ids,
+            avisos: ['A nova modelagem aceita apenas uma disciplina por turma; apenas o primeiro disciplina_id foi associada.']
           });
         }
 
-        var disciplinaId = disciplinaIds[index];
-        var sqlDisciplina = 'INSERT OR IGNORE INTO turma_disciplinas (turma_id, disciplina_id) VALUES (?, ?)';
-        
-        db.run(sqlDisciplina, [turmaId, disciplinaId], function(errDisciplina: any) {
-          if (errDisciplina) {
-            erros.push(errDisciplina.message);
-          }
-          processadas++;
-          processarDisciplina(index + 1);
+        return res.status(201).json({
+          id: turmaId,
+          nome,
+          curso_id: Number(curso_id),
+          disciplina_ids: [Number(disciplinaIdToUse)]
         });
-      }
-
-      // Inicia o processamento
-      processarDisciplina(0);
-    } else {
-      // Se não houver disciplinas, retorna sucesso
-      return res.status(201).json({ 
-        id: turmaId, 
-        nome: nome,
-        curso_id: Number(cursoId)
       });
+    };
+
+    // Se vier disciplina_ids: procurar a primeira que pertença ao curso (tolerante ao front que envia checkboxes de outros cursos)
+    if (disciplina_ids.length > 0) {
+      // Monta placeholders para IN (...)
+      const placeholders = disciplina_ids.map(() => '?').join(',');
+      const sql = `SELECT id_disciplina FROM DISCIPLINA WHERE id_disciplina IN (${placeholders}) AND fk_curso_id_curso = ? LIMIT 1`;
+      const params = [...disciplina_ids, curso_id];
+
+      db.get(sql, params, (errDiscSel: any, discSelRow: any) => {
+        if (errDiscSel) return res.status(500).json({ error: errDiscSel.message });
+        if (discSelRow && discSelRow.id_disciplina) {
+          // Achou uma disciplina dentre as enviadas que pertence ao curso -> usa essa
+          return inserirTurma(discSelRow.id_disciplina);
+        }
+
+        // Nenhuma das disciplinas enviadas pertence ao curso: tentamos pegar a primeira disciplina do curso (fallback)
+        db.get('SELECT id_disciplina FROM DISCIPLINA WHERE fk_curso_id_curso = ? LIMIT 1', [curso_id], (errFind: any, found: any) => {
+          if (errFind) return res.status(500).json({ error: errFind.message });
+          if (!found) {
+            // Não existe disciplina no curso
+            return res.status(400).json({ error: 'Nenhuma disciplina encontrada para o curso informado. Informe disciplina_ids válidas ou crie uma disciplina para o curso.' });
+          }
+          // usamos a disciplina encontrada no curso (mesmo que não tenha sido enviada pelo front)
+          return inserirTurma(found.id_disciplina);
+        });
+      });
+
+      return;
     }
+
+    // Se não veio disciplina_ids: escolhemos a primeira disciplina do curso (como fallback)
+    db.get('SELECT id_disciplina FROM DISCIPLINA WHERE fk_curso_id_curso = ? LIMIT 1', [curso_id], (errFind2: any, found2: any) => {
+      if (errFind2) return res.status(500).json({ error: errFind2.message });
+      if (!found2) {
+        return res.status(400).json({ error: 'Nenhuma disciplina encontrada para o curso informado. Informe disciplina_ids ou crie uma disciplina para o curso.' });
+      }
+      return inserirTurma(found2.id_disciplina);
+    });
   });
 });
 
-// Rota PUT /api/turmas/:id - Atualiza uma turma existente
-router.put('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL e o nome do corpo da requisição
-  const id = req.params.id;
-  const nome = req.body.nome;
+/**
+ * PUT /api/turmas/:id
+ */
+router.put('/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const nomeRaw = req.body?.nome;
+  const nome = typeof nomeRaw === 'string' ? nomeRaw.trim() : nomeRaw;
 
-  // Valida se o nome foi preenchido
   if (!nome) {
     return res.status(400).json({ error: 'Nome da turma é obrigatório' });
   }
 
-  // Query SQL para atualizar a turma
-  const sql = 'UPDATE turmas SET nome = ? WHERE id = ?';
-  
-  // Executa a query no banco de dados
-  db.run(sql, [nome, id], function (err: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  const sql = 'UPDATE TURMA SET nome_turma = ? WHERE id_turma = ?';
 
-    // Se nenhuma linha foi afetada, a turma não existe
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Turma não encontrada' });
-    }
-    
-    // Retorna sucesso
-    return res.json({ id: Number(id), nome: nome });
+  db.run(sql, [nome, id], function (err: any) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Turma não encontrada' });
+    return res.json({ id: Number(id), nome });
   });
 });
 
-// Rota DELETE /api/turmas/:id - Exclui uma turma
-router.delete('/:id', function(req: any, res: any) {
-  // Extrai o ID da URL
-  const id = req.params.id;
-
-  // Query SQL para excluir a turma (as associações serão excluídas automaticamente por CASCADE)
-  const sql = 'DELETE FROM turmas WHERE id = ?';
-  
-  // Executa a query no banco de dados
+/**
+ * DELETE /api/turmas/:id
+ */
+router.delete('/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const sql = 'DELETE FROM TURMA WHERE id_turma = ?';
   db.run(sql, [id], function (err: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-
-    // Se nenhuma linha foi afetada, a turma não existe
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Turma não encontrada' });
-    }
-    
-    // Retorna sucesso
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Turma não encontrada' });
     return res.json({ message: 'Turma excluída com sucesso' });
   });
 });
 
-// Rota GET /api/turmas/:id/alunos - Lista todos os alunos de uma turma
-router.get('/:id/alunos', function(req: any, res: any) {
-  // Extrai o ID da turma da URL
-  const id = req.params.id;
+/**
+ * GET /api/turmas/:id/alunos
+ */
+router.get('/:id/alunos', (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  // Query SQL para buscar todos os alunos da turma
   const sql = `
-    SELECT 
-      a.id,
-      a.identificador,
-      a.nome,
-      a.criado_em
-    FROM alunos a
-    INNER JOIN turma_alunos ta ON a.id = ta.aluno_id
-    WHERE ta.turma_id = ?
-    ORDER BY a.nome
+    SELECT
+      a.id_aluno AS id,
+      a.matricula AS identificador,
+      a.nome_completo AS nome,
+      NULL AS criado_em
+    FROM ALUNO a
+    INNER JOIN MATRICULA_TURMA mt ON a.id_aluno = mt.fk_aluno_id_aluno
+    WHERE mt.fk_turma_id_turma = ?
+    ORDER BY a.nome_completo
   `;
-  
-  // Executa a query no banco de dados
-  db.all(sql, [id], function(err: any, rows: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    // Retorna a lista de alunos
+
+  db.all(sql, [id], (err: any, rows: any) => {
+    if (err) return res.status(500).json({ error: err.message });
     return res.json(rows);
   });
 });
 
-// Rota GET /api/turmas/:id/disciplinas - Lista todas as disciplinas de uma turma
-router.get('/:id/disciplinas', function(req: any, res: any) {
-  // Extrai o ID da turma da URL
-  const id = req.params.id;
+/**
+ * GET /api/turmas/:id/disciplinas
+ */
+router.get('/:id/disciplinas', (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  // Query SQL para buscar todas as disciplinas da turma
   const sql = `
-    SELECT 
-      d.id,
-      d.nome,
-      d.criado_em
-    FROM disciplinas d
-    INNER JOIN turma_disciplinas td ON d.id = td.disciplina_id
-    WHERE td.turma_id = ?
-    ORDER BY d.nome
+    SELECT
+      d.id_disciplina AS id,
+      d.nome_disciplina AS nome,
+      NULL AS criado_em
+    FROM DISCIPLINA d
+    INNER JOIN TURMA t ON t.fk_disciplina_id_disciplina = d.id_disciplina
+    WHERE t.id_turma = ?
   `;
-  
-  // Executa a query no banco de dados
-  db.all(sql, [id], function(err: any, rows: any) {
-    // Se houver erro, retorna erro 500
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    // Retorna a lista de disciplinas
-    return res.json(rows);
+
+  db.all(sql, [id], (err: any, rows: any) => {
+    if (err) return res.status(500).json({ error: err.message });
+    return res.json(rows || []);
   });
 });
 
-// Exporta o roteador para ser usado no servidor principal
 export default router;
-

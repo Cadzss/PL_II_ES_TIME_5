@@ -1,74 +1,91 @@
-// autor: Cadu Spadari
-// Importa o Express (biblioteca para criar servidor web)
-import express from 'express';
-// Importa a conexão do banco de dados
+// Autor Geral: Cadu Spadari - Autor Código BD: Felipe N. C. Moussa
+// Express & BD
+import { Router, Request, Response } from 'express';
 import db from '../database';
+const router = Router();
 
-// Cria um roteador do Express para agrupar as rotas de cadastro inicial
-const router = express.Router();
+// Criar Instituicao e Curso (POST)
+router.post('/', (req: Request, res: Response) => {
+  const { nome_instituicao, nome_curso, usuario_id } = req.body ?? {};
 
-// Rota POST /api/cadastro-inicial - Cria uma instituição e um curso ao mesmo tempo
-router.post('/', function(req: any, res: any) {
-  // Extrai os dados do corpo da requisição
-  const nomeInstituicao = req.body.nome_instituicao;
-  const nomeCurso = req.body.nome_curso;
-
-  // Valida se os campos obrigatórios foram preenchidos
-  if (!nomeInstituicao || !nomeCurso) {
-    return res.status(400).json({ 
-      error: 'Nome da instituição e nome do curso são obrigatórios' 
+  if (!nome_instituicao || !nome_curso) {
+    return res.status(400).json({
+      error: 'Nome da instituição e nome do curso são obrigatórios'
     });
   }
 
-  // Query SQL para inserir a nova instituição (ou usar existente)
-  const sqlInstituicao = 'INSERT OR IGNORE INTO instituicoes (nome) VALUES (?)';
-  
-  // Executa a query para inserir a instituição
-  db.run(sqlInstituicao, [nomeInstituicao], function (err: any) {
-    // Se houver erro, retorna erro
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  const inserirCurso = (instituicaoId: number) => {
+    const sqlCurso = `
+      INSERT INTO CURSO (nome_curso, fk_instituicao_id_instituicao)
+      VALUES (?, ?)
+    `;
 
-    // Busca o ID da instituição (pode ser recém-criada ou já existente)
-    db.get('SELECT id FROM instituicoes WHERE nome = ?', [nomeInstituicao], function(errGet: any, row: any) {
-      if (errGet) {
-        return res.status(500).json({ error: errGet.message });
+    db.run(sqlCurso, [nome_curso, instituicaoId], function (err: any) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(409).json({ error: 'Curso já cadastrado nesta instituição' });
+        }
+        return res.status(500).json({ error: err.message });
       }
 
-      const instituicaoId = row.id;
-
-      // Query SQL para inserir o novo curso
-      const sqlCurso = 'INSERT INTO cursos (nome, instituicao_id) VALUES (?, ?)';
-      
-      // Executa a query para inserir o curso
-      db.run(sqlCurso, [nomeCurso, instituicaoId], function (errCurso: any) {
-        // Se houver erro, retorna erro
-        if (errCurso) {
-          // Verifica se o erro é de curso duplicado na mesma instituição
-          if (errCurso.message.includes('UNIQUE constraint failed')) {
-            return res.status(409).json({ error: 'Curso já cadastrado nesta instituição' });
-          }
-          return res.status(500).json({ error: errCurso.message });
+      return res.status(201).json({
+        instituicao: {
+          id: instituicaoId,
+          nome: nome_instituicao
+        },
+        curso: {
+          id: this.lastID,
+          nome: nome_curso,
+          instituicao_id: instituicaoId
         }
-
-        // Retorna os dados criados
-        return res.status(201).json({ 
-          instituicao: {
-            id: instituicaoId,
-            nome: nomeInstituicao
-          },
-          curso: {
-            id: this.lastID,
-            nome: nomeCurso,
-            instituicao_id: instituicaoId
-          }
-        });
       });
     });
-  });
+  };
+
+  const handleWithUsuarioId = (fkUsuarioId: number) => {
+    const sqlInstituicao = `
+      INSERT OR IGNORE INTO INSTITUICAO (nome_instituicao, fk_usuario_id_usuario)
+      VALUES (?, ?)
+    `;
+
+    db.run(sqlInstituicao, [nome_instituicao, fkUsuarioId], function (err: any) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      db.get('SELECT id_instituicao FROM INSTITUICAO WHERE nome_instituicao = ?', [nome_instituicao], (err2: any, row: any) => {
+        if (err2) {
+          return res.status(500).json({ error: err2.message });
+        }
+
+        if (!row || !row.id_instituicao) {
+          return res.status(500).json({ error: 'Não foi possível recuperar o ID da instituição' });
+        }
+
+        const instituicaoId = row.id_instituicao;
+        inserirCurso(instituicaoId);
+      });
+    });
+  };
+
+  if (usuario_id) {
+    handleWithUsuarioId(Number(usuario_id));
+  } else {
+    db.get('SELECT id_usuario FROM USUARIO LIMIT 1', [], (err: any, row: any) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (!row || !row.id_usuario) {
+        return res.status(400).json({
+          error: 'Não há usuário disponível para associar à instituição. Forneça "usuario_id" no corpo da requisição ou crie um usuário primeiro.'
+        });
+      }
+
+      handleWithUsuarioId(row.id_usuario);
+    });
+  }
 });
 
-// Exporta o roteador para ser usado no servidor principal
+// Exportar Router
 export default router;
-

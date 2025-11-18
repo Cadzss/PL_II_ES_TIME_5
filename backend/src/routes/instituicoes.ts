@@ -1,156 +1,149 @@
-// autor: Cadu Spadari
-// Importa o Express (biblioteca para criar servidor web)
-import express from 'express';
-// Importa a conexão do banco de dados
+// Autor Geral: Cadu Spadari - Autor Código BD: Felipe N. C. Moussa
+// Express & BD
+import { Router, Request, Response } from 'express';
 import db from '../database';
+const router = Router();
 
-// Cria um roteador do Express para agrupar as rotas de instituições
-const router = express.Router();
+// Lista todas as instituições (GET)
+router.get('/', function(_req: Request, res: Response) {
+  const sql = `
+    SELECT
+      id_instituicao AS id,
+      nome_instituicao AS nome,
+      fk_usuario_id_usuario AS usuario_id,
+      NULL AS criado_em
+    FROM INSTITUICAO
+    ORDER BY id_instituicao DESC
+  `;
 
-// Rota GET /api/instituicoes - Lista todas as instituições
-// Quando alguém faz uma requisição GET para /api/instituicoes, esta função é executada
-router.get('/', function(req: any, res: any) {
-  // Comando SQL para buscar todas as instituições do banco, ordenadas por data de criação (mais recentes primeiro)
-  const sql = 'SELECT * FROM instituicoes ORDER BY criado_em DESC';
-  
-  // Executa o comando SQL no banco de dados
   db.all(sql, [], function(err: any, rows: any) {
-    // Se acontecer algum erro ao executar o SQL
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    
-    // Se tudo deu certo, retorna a lista de instituições em formato JSON
     return res.json(rows);
   });
 });
 
-// Rota GET /api/instituicoes/:id - Busca uma instituição específica por ID
-// Quando alguém faz uma requisição GET para /api/instituicoes/1 (por exemplo), esta função é executada
-router.get('/:id', function(req: any, res: any) {
-  // Pega o ID que veio na URL (por exemplo, se a URL é /api/instituicoes/5, o id será 5)
+// Busca instituição por ID (GET)
+router.get('/:id', function(req: Request, res: Response) {
   const id = req.params.id;
 
-  // Comando SQL para buscar a instituição que tem esse ID
-  const sql = 'SELECT * FROM instituicoes WHERE id = ?';
-  
-  // Executa o comando SQL no banco de dados
-  // O valor ? será substituído pelo valor do array [id]
+  const sql = `
+    SELECT
+      id_instituicao AS id,
+      nome_instituicao AS nome,
+      fk_usuario_id_usuario AS usuario_id
+    FROM INSTITUICAO
+    WHERE id_instituicao = ?
+  `;
+
   db.get(sql, [id], function(err: any, row: any) {
-    // Se acontecer algum erro ao executar o SQL
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se não encontrar nenhuma instituição com esse ID
     if (!row) {
-      // Retorna erro 404 (Not Found - não encontrado)
       return res.status(404).json({ error: 'Instituição não encontrada' });
     }
 
-    // Se encontrou a instituição, retorna os dados dela em formato JSON
     return res.json(row);
   });
 });
 
-// Rota POST /api/instituicoes - Cria uma nova instituição
-// Quando alguém faz uma requisição POST para /api/instituicoes, esta função é executada
-router.post('/', function(req: any, res: any) {
-  // Pega o nome da instituição que veio no corpo da requisição
+// Cria nova instituição (POST)
+router.post('/', function(req: Request, res: Response) {
   const nome = req.body.nome;
+  const usuario_id = req.body.usuario_id;
 
-  // Verifica se o nome foi preenchido
   if (!nome) {
-    // Se não foi preenchido, retorna erro 400 (Bad Request)
     return res.status(400).json({ error: 'Nome da instituição é obrigatório' });
   }
 
-  // Comando SQL para inserir uma nova instituição na tabela
-  const sql = 'INSERT INTO instituicoes (nome) VALUES (?)';
-  
-  // Executa o comando SQL no banco de dados
-  // O valor ? será substituído pelo valor do array [nome]
-  db.run(sql, [nome], function(err: any) {
-    // Se acontecer algum erro ao executar o SQL
-    if (err) {
-      // Verifica se o erro é porque já existe uma instituição com esse nome
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return res.status(409).json({ error: 'Instituição já cadastrada' });
+  const inserirInstituicao = (fkUsuarioId: number) => {
+    const sql = `
+      INSERT INTO INSTITUICAO (nome_instituicao, fk_usuario_id_usuario)
+      VALUES (?, ?)
+    `;
+    db.run(sql, [nome, fkUsuarioId], function(err: any) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(409).json({ error: 'Instituição já cadastrada' });
+        }
+        if (err.message.includes('FOREIGN KEY constraint failed')) {
+          return res.status(404).json({ error: 'Usuário não encontrado para associação' });
+        }
+        return res.status(500).json({ error: err.message });
       }
-      // Se for outro tipo de erro, retorna erro 500 (Internal Server Error)
+
+      return res.status(201).json({
+        id: this.lastID,
+        nome: nome,
+        usuario_id: Number(fkUsuarioId)
+      });
+    });
+  };
+
+  if (usuario_id) {
+    return inserirInstituicao(Number(usuario_id));
+  }
+
+  db.get('SELECT id_usuario FROM USUARIO LIMIT 1', [], (err: any, row: any) => {
+    if (err) {
       return res.status(500).json({ error: err.message });
     }
-    
-    // Se tudo deu certo, retorna os dados da instituição criada
-    return res.status(201).json({ 
-      id: this.lastID,  // ID que foi gerado automaticamente pelo banco
-      nome: nome 
-    });
+
+    if (!row || !row.id_usuario) {
+      return res.status(400).json({
+        error: 'Não há usuário disponível para associar à instituição. Forneça "usuario_id" no corpo da requisição ou crie um usuário primeiro.'
+      });
+    }
+
+    return inserirInstituicao(row.id_usuario);
   });
 });
 
-// Rota PUT /api/instituicoes/:id - Atualiza uma instituição existente
-// Quando alguém faz uma requisição PUT para /api/instituicoes/1 (por exemplo), esta função é executada
-router.put('/:id', function(req: any, res: any) {
-  // Pega o ID que veio na URL
+// Atualiza instituição (PUT)
+router.put('/:id', function(req: Request, res: Response) {
   const id = req.params.id;
-  // Pega o novo nome que veio no corpo da requisição
   const nome = req.body.nome;
 
-  // Verifica se o nome foi preenchido
   if (!nome) {
-    // Se não foi preenchido, retorna erro 400 (Bad Request)
     return res.status(400).json({ error: 'Nome da instituição é obrigatório' });
   }
 
-  // Comando SQL para atualizar o nome da instituição que tem esse ID
-  const sql = 'UPDATE instituicoes SET nome = ? WHERE id = ?';
-  
-  // Executa o comando SQL no banco de dados
-  // Os valores ? serão substituídos pelos valores do array [nome, id]
+  const sql = 'UPDATE INSTITUICAO SET nome_instituicao = ? WHERE id_instituicao = ?';
+
   db.run(sql, [nome, id], function(err: any) {
-    // Se acontecer algum erro ao executar o SQL
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se nenhuma linha foi atualizada, significa que não existe instituição com esse ID
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Instituição não encontrada' });
     }
-    
-    // Se tudo deu certo, retorna os dados atualizados
+
     return res.json({ id: Number(id), nome: nome });
   });
 });
 
-// Rota DELETE /api/instituicoes/:id - Exclui uma instituição
-// Quando alguém faz uma requisição DELETE para /api/instituicoes/1 (por exemplo), esta função é executada
-router.delete('/:id', function(req: any, res: any) {
-  // Pega o ID que veio na URL
+// Exclui instituição (DELETE)
+router.delete('/:id', function(req: Request, res: Response) {
   const id = req.params.id;
 
-  // Comando SQL para excluir a instituição que tem esse ID
-  const sql = 'DELETE FROM instituicoes WHERE id = ?';
-  
-  // Executa o comando SQL no banco de dados
-  // O valor ? será substituído pelo valor do array [id]
+  const sql = 'DELETE FROM INSTITUICAO WHERE id_instituicao = ?';
+
   db.run(sql, [id], function(err: any) {
-    // Se acontecer algum erro ao executar o SQL
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
-    // Se nenhuma linha foi excluída, significa que não existe instituição com esse ID
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Instituição não encontrada' });
     }
-    
-    // Se tudo deu certo, retorna uma mensagem de sucesso
+
     return res.json({ message: 'Instituição excluída com sucesso' });
   });
 });
 
-// Exporta o roteador para ser usado no servidor principal
+// Exportar Router
 export default router;
-
