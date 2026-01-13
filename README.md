@@ -49,6 +49,7 @@ Fornecer uma ferramenta web intuitiva e funcional para auxiliar docentes no cont
 ### Backend
 - Node.js  
 - JavaScript / TypeScript  
+- Express.js (se utilizado pela equipe)
 
 ### Frontend
 - HTML5  
